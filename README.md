@@ -1,5 +1,7 @@
 # Health
 
+The Health module of Hearthlog: features `bmi, calories, activities` (see `hearthlog.module.json`). It is installed by listing it in a site's `modules.lock.json` (`hearthlog lock`) and `package.json`.
+
 ## Status
 
 It installs against `@hearthlog/sdk` >=0.1.0 <0.2.0.
