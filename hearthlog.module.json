@@ -1,0 +1,88 @@
+{
+  "manifestVersion": 1,
+  "id": "org.stor.health",
+  "package": "@hearthlog/module-health",
+  "version": "1.0.0",
+  "compatibility": { "moduleApi": 1 },
+  "features": [
+    {
+      "id": "bmi",
+      "path": "/bmi",
+      "label": "Health",
+      "subtitle": "Body metrics, nutrition, and food diary",
+      "keywords": "health weight bmi body food calories nutrition macros meals diary",
+      "navGroup": "Life",
+      "icon": "heart-outline",
+      "navOrder": 60,
+      "mobilePrimary": true,
+      "mobileOrder": 5
+    },
+    {
+      "id": "calories",
+      "path": "/calories",
+      "label": "Nutrition",
+      "subtitle": "Daily food diary, macros, and nutrition goals",
+      "keywords": "food calories nutrition macros meals diary",
+      "navGroup": "Life",
+      "icon": "food-apple-outline",
+      "navOrder": 70,
+      "shortcuts": [
+        { "id": "log-food", "label": "Log food", "subtitle": "Open the calorie diary entry drawer", "keywords": "food calories nutrition meal add", "query": "?newEntry=1" }
+      ]
+    },
+    {
+      "id": "activities",
+      "path": "/activities",
+      "label": "Activity",
+      "subtitle": "Steps, workouts, and movement goals",
+      "keywords": "activity steps workout exercise gym movement walking running health",
+      "navGroup": "Life",
+      "icon": "run",
+      "navOrder": 80,
+      "shortcuts": [
+        { "id": "log-activity", "label": "Log activity", "subtitle": "Open the Activity diary in Health", "keywords": "activity steps workout exercise gym add", "href": "/activities?newEntry=1" }
+      ]
+    }
+  ],
+  "routes": [
+    {
+      "path": "/health",
+      "page": "./src/pages/day.svelte",
+      "load": "./src/pages/day.ts",
+      "fitsScreen": true,
+      "requires": { "features": ["bmi", "calories", "activities"], "minimum": 2 }
+    },
+    { "path": "/calories", "page": "./src/pages/nutrition.svelte", "load": "./src/pages/nutrition.ts", "fitsScreen": true },
+    { "path": "/calories/foods", "page": "./src/pages/foods.svelte", "load": "./src/pages/foods.ts" },
+    { "path": "/activities", "page": "./src/pages/activity.svelte", "load": "./src/pages/activity.ts", "fitsScreen": true },
+    { "path": "/bmi", "page": "./src/pages/body.svelte", "load": "./src/pages/body.ts" }
+  ],
+  "section": {
+    "id": "health",
+    "label": "Health",
+    "keywords": "health body nutrition activity food weight calories steps",
+    "navGroup": "Life",
+    "icon": "heart-outline",
+    "mobilePrimary": true,
+    "mobileOrder": 4,
+    "children": [
+      { "id": "day", "label": "Day", "href": "/health", "requiresRoute": "/health" },
+      { "id": "body", "label": "Body", "href": "/bmi", "feature": "bmi" },
+      { "id": "nutrition", "label": "Nutrition", "href": "/calories", "feature": "calories" },
+      { "id": "activities", "label": "Activity", "href": "/activities", "feature": "activities" },
+      { "id": "foods", "label": "Food library", "href": "/calories/foods", "feature": "calories", "secondary": true }
+    ]
+  },
+  "redirects": [
+    { "path": "/bmi", "query": { "section": "activity" }, "to": "/activities", "feature": "activities" }
+  ],
+  "data": {
+    "definitions": "./src/data/definitions.ts",
+    "repositories": "./src/data/repositories.ts"
+  },
+  "projectionVersion": 1,
+  "integrationKinds": [{ "kind": "steps", "feature": "activities" }],
+  "server": { "entry": "./src/server/index.ts" },
+  "refreshKeys": ["app:calories", "app:activities", "app:foods", "app:weight-logs"],
+  "styles": "./src/styles.css"
+}
