@@ -2,8 +2,10 @@
   "manifestVersion": 1,
   "id": "org.stor.health",
   "package": "@hearthlog/module-health",
-  "version": "1.0.0",
-  "compatibility": { "moduleApi": 1 },
+  "version": "1.0.2",
+  "compatibility": {
+    "moduleApi": 1
+  },
   "features": [
     {
       "id": "bmi",
@@ -27,7 +29,13 @@
       "icon": "food-apple-outline",
       "navOrder": 70,
       "shortcuts": [
-        { "id": "log-food", "label": "Log food", "subtitle": "Open the calorie diary entry drawer", "keywords": "food calories nutrition meal add", "query": "?newEntry=1" }
+        {
+          "id": "log-food",
+          "label": "Log food",
+          "subtitle": "Open the calorie diary entry drawer",
+          "keywords": "food calories nutrition meal add",
+          "query": "?newEntry=1"
+        }
       ]
     },
     {
@@ -40,7 +48,13 @@
       "icon": "run",
       "navOrder": 80,
       "shortcuts": [
-        { "id": "log-activity", "label": "Log activity", "subtitle": "Open the Activity diary in Health", "keywords": "activity steps workout exercise gym add", "href": "/activities?newEntry=1" }
+        {
+          "id": "log-activity",
+          "label": "Log activity",
+          "subtitle": "Open the Activity diary in Health",
+          "keywords": "activity steps workout exercise gym add",
+          "href": "/activities?newEntry=1"
+        }
       ]
     }
   ],
@@ -50,12 +64,37 @@
       "page": "./src/pages/day.svelte",
       "load": "./src/pages/day.ts",
       "fitsScreen": true,
-      "requires": { "features": ["bmi", "calories", "activities"], "minimum": 2 }
+      "requires": {
+        "features": [
+          "bmi",
+          "calories",
+          "activities"
+        ],
+        "minimum": 2
+      }
     },
-    { "path": "/calories", "page": "./src/pages/nutrition.svelte", "load": "./src/pages/nutrition.ts", "fitsScreen": true },
-    { "path": "/calories/foods", "page": "./src/pages/foods.svelte", "load": "./src/pages/foods.ts" },
-    { "path": "/activities", "page": "./src/pages/activity.svelte", "load": "./src/pages/activity.ts", "fitsScreen": true },
-    { "path": "/bmi", "page": "./src/pages/body.svelte", "load": "./src/pages/body.ts" }
+    {
+      "path": "/calories",
+      "page": "./src/pages/nutrition.svelte",
+      "load": "./src/pages/nutrition.ts",
+      "fitsScreen": true
+    },
+    {
+      "path": "/calories/foods",
+      "page": "./src/pages/foods.svelte",
+      "load": "./src/pages/foods.ts"
+    },
+    {
+      "path": "/activities",
+      "page": "./src/pages/activity.svelte",
+      "load": "./src/pages/activity.ts",
+      "fitsScreen": true
+    },
+    {
+      "path": "/bmi",
+      "page": "./src/pages/body.svelte",
+      "load": "./src/pages/body.ts"
+    }
   ],
   "section": {
     "id": "health",
@@ -66,23 +105,68 @@
     "mobilePrimary": true,
     "mobileOrder": 4,
     "children": [
-      { "id": "day", "label": "Day", "href": "/health", "requiresRoute": "/health" },
-      { "id": "body", "label": "Body", "href": "/bmi", "feature": "bmi" },
-      { "id": "nutrition", "label": "Nutrition", "href": "/calories", "feature": "calories" },
-      { "id": "activities", "label": "Activity", "href": "/activities", "feature": "activities" },
-      { "id": "foods", "label": "Food library", "href": "/calories/foods", "feature": "calories", "secondary": true }
+      {
+        "id": "day",
+        "label": "Day",
+        "href": "/health",
+        "requiresRoute": "/health"
+      },
+      {
+        "id": "body",
+        "label": "Body",
+        "href": "/bmi",
+        "feature": "bmi"
+      },
+      {
+        "id": "nutrition",
+        "label": "Nutrition",
+        "href": "/calories",
+        "feature": "calories"
+      },
+      {
+        "id": "activities",
+        "label": "Activity",
+        "href": "/activities",
+        "feature": "activities"
+      },
+      {
+        "id": "foods",
+        "label": "Food library",
+        "href": "/calories/foods",
+        "feature": "calories",
+        "secondary": true
+      }
     ]
   },
   "redirects": [
-    { "path": "/bmi", "query": { "section": "activity" }, "to": "/activities", "feature": "activities" }
+    {
+      "path": "/bmi",
+      "query": {
+        "section": "activity"
+      },
+      "to": "/activities",
+      "feature": "activities"
+    }
   ],
   "data": {
     "definitions": "./src/data/definitions.ts",
     "repositories": "./src/data/repositories.ts"
   },
   "projectionVersion": 1,
-  "integrationKinds": [{ "kind": "steps", "feature": "activities" }],
-  "server": { "entry": "./src/server/index.ts" },
-  "refreshKeys": ["app:calories", "app:activities", "app:foods", "app:weight-logs"],
+  "integrationKinds": [
+    {
+      "kind": "steps",
+      "feature": "activities"
+    }
+  ],
+  "server": {
+    "entry": "./src/server/index.ts"
+  },
+  "refreshKeys": [
+    "app:calories",
+    "app:activities",
+    "app:foods",
+    "app:weight-logs"
+  ],
   "styles": "./src/styles.css"
 }
