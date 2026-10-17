@@ -9,6 +9,7 @@
     "./pages/*.svelte": "./src/pages/*.svelte",
     "./data/*.js": "./src/data/*.ts",
     "./server/*.js": "./src/server/*.ts",
+    "./attention.js": "./src/attention.ts",
     "./styles.css": "./src/styles.css"
   },
   "dependencies": {

@@ -114,6 +114,26 @@ export function createHealthDayRepository(session: ReadModelSession) {
             }));
         },
 
+        /** Calories eaten and steps taken on `date`, summed by SQLite; a disabled source counts zero. */
+        async getDayTotals(date: string, sources: { meals: boolean; activity: boolean }): Promise<{ kcal: number; steps: number }> {
+            if (!sources.meals && !sources.activity) return { kcal: 0, steps: 0 };
+            const end = shiftLocalDate(date, 1);
+            const kcal = sources.meals
+                ? sql`(SELECT COALESCE(SUM(calories), 0) FROM ${session.table('calorie_entries')}
+                    WHERE logged_at >= ${date} AND logged_at < ${end})`
+                : sql`0`;
+            const steps = sources.activity
+                ? sql`(SELECT COALESCE(SUM(amount), 0) FROM ${session.table('activity_entries')}
+                    WHERE kind = 'steps' AND logged_at >= ${date} AND logged_at < ${end})`
+                : sql`0`;
+            const result = await withTimeout(
+                session.execute(sql<{ kcal: number | string | null; steps: number | string | null }>`SELECT ${kcal} AS kcal, ${steps} AS steps`),
+                DB_TIMEOUT_MS,
+                'Health day totals query timed out',
+            );
+            return { kcal: toNumber(result.rows[0]?.kcal), steps: toNumber(result.rows[0]?.steps) };
+        },
+
         /**
          * The mean calories eaten by each of `times` (`HH:mm`) over the last `days`
          * days before `date` that have meals, cut together by SQLite. Null below

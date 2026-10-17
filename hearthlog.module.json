@@ -153,6 +153,7 @@
     "repositories": "./src/data/repositories.ts"
   },
   "projectionVersion": 1,
+  "attention": "./src/attention.ts",
   "integrationKinds": [
     {
       "kind": "steps",
