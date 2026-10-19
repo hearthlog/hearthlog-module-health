@@ -17,6 +17,7 @@
         size = 112,
         met = false,
         empty = false,
+        center,
     }: {
         /** Share of the target reached, uncapped; null without a target. */
         ratio: number | null;
@@ -29,6 +30,8 @@
         met?: boolean;
         /** Nothing to draw yet: a dashed track instead of an arc. */
         empty?: boolean;
+        /** A short word for the middle (a percentage) in place of the value and unit, for a small ring. */
+        center?: string;
     } = $props();
 
     const radius = 45;
@@ -58,8 +61,12 @@
         {#if over}<line class="notch" x1={notch.x1} y1={notch.y1} x2={notch.x2} y2={notch.y2} />{/if}
     </svg>
     <div class="center">
-        <b class="value"><DataValue>{value}</DataValue></b>
-        <span class="unit">{unit}</span>
+        {#if center !== undefined}
+            <b class="pct">{center}</b>
+        {:else}
+            <b class="value"><DataValue>{value}</DataValue></b>
+            <span class="unit">{unit}</span>
+        {/if}
     </div>
     {#if met}<span class="tick"><IconCheck class="h-3.5 w-3.5" aria-hidden="true" /></span>{/if}
 </div>
@@ -83,6 +90,7 @@
     .notch { stroke: var(--stor-surface); stroke-width: 2; stroke-linecap: round; }
     .center { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; line-height: 1.1; }
     .value { display: block; font-size: calc(var(--s) * .21); font-weight: 650; letter-spacing: -.02em; color: var(--stor-ink); font-variant-numeric: tabular-nums; }
+    .pct { font-size: calc(var(--s) * .19); font-weight: 600; color: var(--tone); font-variant-numeric: tabular-nums; }
     .unit { display: block; margin-top: 2px; font-size: 11px; color: var(--stor-muted-text); }
     .tick {
         position: absolute; right: 2%; bottom: 2%; display: grid; place-items: center; width: 24px; height: 24px;

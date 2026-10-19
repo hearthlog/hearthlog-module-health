@@ -1,24 +1,22 @@
 <script lang="ts">
-    import { DataValue } from "@hearthlog/sdk/ui";
+    import { DataValue, Metric } from "@hearthlog/sdk/ui";
+    import HealthRing from "./HealthRing.svelte";
     import { formatFixed, formatNumber } from "@hearthlog/sdk/format";
     import {
         bmiSummary,
         eatStatus,
-        eatStatusShort,
         goalProgress,
         moveStatus,
-        moveStatusShort,
         weighStatus,
         weightChangeLabel,
-        weightChangeShort,
         type HealthSources,
     } from "../../health/day.js";
     import type { HealthDayBlock } from "../../health/day-blocks.js";
 
     /**
-     * The day's three numbers with their standing in one line each and a thin
-     * meter under calories and steps. The log below carries the story; this
-     * only says where the day stands.
+     * The day's band: Eat against its budget ring, Move and Weigh as figures,
+     * each with one support line. The log below carries the story; this only
+     * says where the day stands.
      */
     let {
         date,
@@ -45,87 +43,68 @@
     const bodyChange = $derived(weightChangeLabel(body?.delta ?? null));
 
     const eatLong = $derived(eat.target > 0 ? `${eatStatus(eat.calories, eat.target)} of ${formatNumber(eat.target)}` : "");
+    const eatLabel = $derived(`${formatNumber(eat.calories)}${eat.target > 0 ? ` of ${formatNumber(eat.target)}` : ""} kcal`);
     const moveLong = $derived(move.stepsTarget > 0 && move.steps < move.stepsTarget ? `${moveStatus(move.steps, move.stepsTarget)} of ${formatNumber(move.stepsTarget)}` : moveStatus(move.steps, move.stepsTarget));
 </script>
 
 <section class="stor-panel hero {className}" aria-label="Day summary">
     {#if sources.meals}
-        <article class="tile stor-tone-eat" aria-label="Eat">
-            <p class="label"><i class="dot"></i>Eat</p>
-            <p class="big"><DataValue>{formatNumber(eat.calories)}</DataValue><small>kcal</small></p>
-            {#if !loading}
-                <p class="sup" class:warn={eatGoal.tone === "over"}>
-                    {#if eat.target > 0}<span class="long">{eatLong}</span><span class="short">{eatStatusShort(eat.calories, eat.target)}</span>{:else if eat.calories === 0}Nothing logged{:else}&nbsp;{/if}
-                </p>
+        <article class="tile eat" aria-label="Eat">
+            {#if eat.target > 0}
+                <div class="eat-ring">
+                    <HealthRing
+                        ratio={eatGoal.ratio}
+                        tone="eat"
+                        value={formatNumber(eat.calories)}
+                        unit="kcal"
+                        label={eatLabel}
+                        center={loading ? "" : `${Math.round((eatGoal.ratio ?? 0) * 100)}%`}
+                        empty={eat.calories === 0}
+                    />
+                </div>
             {/if}
-            {#if eat.target > 0}<i class="thin" aria-hidden="true"><b class:over={eatGoal.tone === "over"} style:width="{Math.min(1, eatGoal.ratio ?? 0) * 100}%"></b></i>{/if}
+            <Metric label="Eat" size="lg" unit="kcal" detail={loading ? "" : eat.target > 0 ? eatLong : eat.calories === 0 ? "Nothing logged" : ""} class={eatGoal.tone === "over" ? "over" : ""}>
+                <DataValue>{formatNumber(eat.calories)}</DataValue>
+            </Metric>
         </article>
     {/if}
     {#if sources.activity}
-        <article class="tile stor-tone-move" aria-label="Move">
-            <p class="label"><i class="dot"></i>Move</p>
-            <p class="big"><DataValue>{formatNumber(move.steps)}</DataValue><small>steps</small></p>
-            {#if !loading}
-                <p class="sup" class:pos={moveGoal.tone === "met"}>
-                    {#if move.stepsTarget > 0}<span class="long">{moveLong}</span><span class="short">{moveStatusShort(move.steps, move.stepsTarget)}</span>{:else if move.steps === 0}Nothing logged{:else}&nbsp;{/if}
-                </p>
-            {/if}
-            {#if move.stepsTarget > 0}<i class="thin" aria-hidden="true"><b style:width="{Math.min(1, moveGoal.ratio ?? 0) * 100}%"></b></i>{/if}
+        <article class="tile" aria-label="Move">
+            <Metric label="Move" size="lg" unit="steps" detail={loading ? "" : move.stepsTarget > 0 ? moveLong : move.steps === 0 ? "Nothing logged" : ""}>
+                <DataValue>{formatNumber(move.steps)}</DataValue>
+            </Metric>
         </article>
     {/if}
     {#if sources.body}
-        <article class="tile stor-tone-body" aria-label="Weigh">
-            <p class="label"><i class="dot"></i>Weigh</p>
-            <p class="big"><DataValue>{body ? formatFixed(body.weight, 1) : "—"}</DataValue><small>kg</small></p>
-            {#if !loading}
-                <p class="sup">
-                    {#if body}
-                        {#if bodyChange}<span class="long">{bodyChange}{#if bmiSummary(body.weight, body.height)} · {bmiSummary(body.weight, body.height)}{/if}</span><span class="short">{weightChangeShort(body.delta)}</span>{:else}{weighStatus(body.date, date, today)}{/if}
-                    {:else}No weigh-in yet{/if}
-                </p>
-            {/if}
+        <article class="tile" aria-label="Weigh">
+            <Metric
+                label="Weigh"
+                size="lg"
+                unit="kg"
+                detail={loading ? "" : body ? (bodyChange ? `${bodyChange}${bmiSummary(body.weight, body.height) ? ` · ${bmiSummary(body.weight, body.height)}` : ""}` : weighStatus(body.date, date, today)) : "No weigh-in yet"}
+            >
+                <DataValue>{body ? formatFixed(body.weight, 1) : "—"}</DataValue>
+            </Metric>
         </article>
     {/if}
 </section>
 
 <style>
-    /* Phones and tablets keep three compact columns; a panel that spans the page spreads them out. */
+    /* The band keeps three columns; a column too narrow for the ring beside its figure stacks it above. */
     .hero { container-type: inline-size; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); }
-    .tile { position: relative; min-width: 0; padding: 14px 14px 16px; }
-    .tile + .tile::before { content: ""; position: absolute; top: 14px; bottom: 14px; left: 0; width: 1px; background: color-mix(in srgb, var(--stor-border) 70%, transparent); }
-    .label { display: flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 600; letter-spacing: .02em; color: var(--stor-muted-text); }
-    .dot { display: block; width: 8px; height: 8px; border-radius: 50%; background: var(--tone); }
-    .big { margin-top: 6px; font-size: 23px; font-weight: 650; line-height: 1.1; letter-spacing: -.025em; color: var(--stor-ink); font-variant-numeric: tabular-nums; white-space: nowrap; }
-    .big small { margin-left: 4px; font-size: 11px; font-weight: 500; letter-spacing: 0; color: var(--stor-muted-text); }
-    .sup { margin-top: 3px; font-size: 12px; line-height: 1.35; color: var(--stor-muted-text); font-variant-numeric: tabular-nums; }
-    .sup.warn { color: var(--stor-warning); }
-    .sup.pos { color: var(--stor-positive); }
-    .long { display: none; }
-    .thin { display: none; }
-
+    .tile { position: relative; display: flex; min-width: 0; flex-direction: column; justify-content: center; gap: 10px; padding: 14px 14px 16px; }
+    .tile + .tile::before { content: ""; position: absolute; top: 14px; bottom: 14px; left: 0; width: 1px; background: var(--stor-border); }
+    .eat-ring { --ring-size: 48px; }
+    .tile :global(.stor-metric-support) { overflow-wrap: anywhere; }
+    .tile :global(.stor-metric.over .stor-metric-support) { color: var(--stor-warning); }
     /* A phone's three columns are about 115px each: the figures step down so "6 000 steps" fits. */
     @container (max-width: 25rem) {
         .tile { padding: 12px 10px 13px; }
-        .tile + .tile::before { top: 12px; bottom: 12px; }
-        .label { gap: 6px; font-size: 11.5px; }
-        .big { margin-top: 4px; font-size: 20px; }
-        .big small { margin-left: 3px; font-size: 10.5px; }
-        .sup { font-size: 11.5px; }
+        .tile :global(.stor-metric-value) { font-size: 20px; line-height: 24px; }
     }
-
     @container (min-width: 44rem) {
-        .tile { padding: 22px 26px 24px; }
+        .tile { flex-direction: row; align-items: center; gap: 16px; padding: 22px 26px 24px; }
         .tile + .tile::before { top: 22px; bottom: 22px; }
-        .big { margin-top: 8px; font-size: 32px; letter-spacing: -.03em; }
-        .big small { margin-left: 6px; font-size: 14px; }
-        .sup { margin-top: 4px; font-size: 12.5px; }
-        .long { display: inline; }
-        .short { display: none; }
-        .thin {
-            display: block; height: 4px; margin-top: 14px; overflow: hidden; border-radius: 2px;
-            background: color-mix(in srgb, var(--tone) 18%, var(--stor-surface));
-        }
-        .thin b { display: block; height: 100%; border-radius: 2px; background: var(--tone); }
-        .thin b.over { background: repeating-linear-gradient(135deg, var(--tone) 0 3px, var(--stor-warning) 3px 5px); }
+        .eat-ring { --ring-size: 72px; }
     }
 </style>
