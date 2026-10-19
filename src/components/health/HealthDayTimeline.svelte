@@ -5,6 +5,7 @@
     import HealthRow from "./HealthRow.svelte";
     import HealthNowRow from "./HealthNowRow.svelte";
     import RiverGutter from "./RiverGutter.svelte";
+    import DayEmptyIllustration from "./DayEmptyIllustration.svelte";
     import UsualPaceToggle from "./UsualPaceToggle.svelte";
     import { activityIcon, foodIcon } from "./health-icons.js";
     import { contextualHref } from "@hearthlog/sdk/runtime";
@@ -106,18 +107,20 @@
 
 <section class="stor-panel {className}" aria-labelledby="{titleId}-title">
     <!-- Phones: the top bar names the day; the log needs no heading of its own. -->
-    <header class="stor-panel-header max-md:sr-only">
-        <h2 id="{titleId}-title" class="font-semibold text-[var(--stor-ink)]">Timeline</h2>
+    <header class="stor-panel-header stor-panel-header-rule max-md:sr-only">
+        <h2 id="{titleId}-title" class="stor-panel-title">Timeline</h2>
         {#if !loading && rows.length > 0}
             <span class="text-xs text-[var(--stor-muted-text)]">{rows.length} {rows.length === 1 ? "entry" : "entries"}</span>
         {/if}
     </header>
     {#if loading}
-        <div class="px-[var(--stor-panel-padding)] pb-[var(--stor-panel-padding)]"><DataPlaceholder rows={4} compact /></div>
+        <div class="p-[var(--stor-panel-padding)]"><DataPlaceholder rows={4} compact /></div>
     {:else if rows.length === 0}
-        <EmptyState surface={false} title="Nothing logged on this day" description="Meals and movement appear here in the order they happened." />
+        <EmptyState surface={false} title="Nothing logged on this day" description="Meals and movement appear here in the order they happened.">
+            {#snippet illustration()}<DayEmptyIllustration />{/snippet}
+        </EmptyState>
     {:else}
-        <div class="body px-[var(--stor-panel-padding)] pb-[var(--stor-panel-padding)]" class:river style:--gutter-l={sources.meals ? "112px" : "0px"} style:--gutter-r={sources.activity ? "112px" : "0px"}>
+        <div class="body p-[var(--stor-panel-padding)] max-md:pt-0" class:river style:--gutter-l={sources.meals ? "112px" : "0px"} style:--gutter-r={sources.activity ? "112px" : "0px"}>
             {#if river}
                 <div class="heads">
                     <div class="head stor-tone-eat">

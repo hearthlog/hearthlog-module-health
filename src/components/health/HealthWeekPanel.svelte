@@ -45,11 +45,11 @@
 </script>
 
 <section class="stor-panel {className}" aria-labelledby="health-week-title">
-    <header class="stor-panel-header">
-        <h2 id="health-week-title" class="font-semibold text-[var(--stor-ink)]">This week</h2>
+    <header class="stor-panel-header stor-panel-header-rule">
+        <h2 id="health-week-title" class="stor-panel-title">This week</h2>
         <span class="text-xs text-[var(--stor-muted-text)]">{range}</span>
     </header>
-    <div class="flex flex-col gap-5 px-[var(--stor-panel-padding)] pb-[var(--stor-panel-padding)]">
+    <div class="flex flex-col gap-5 p-[var(--stor-panel-padding)]">
         {#if loading}
             <DataPlaceholder rows={4} compact />
         {:else}

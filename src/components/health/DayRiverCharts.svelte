@@ -44,8 +44,8 @@
 
 {#if rows.length > 0 && (sources.meals || sources.activity)}
     <section class="stor-panel {className}" aria-labelledby="{titleId}-title">
-        <header class="stor-panel-header">
-            <h2 id="{titleId}-title" class="font-semibold text-[var(--stor-ink)]">The day so far</h2>
+        <header class="stor-panel-header stor-panel-header-rule">
+            <h2 id="{titleId}-title" class="stor-panel-title">The day so far</h2>
             {#if sources.meals && usualPace && onToggleUsual}
                 <UsualPaceToggle pressed={showUsual} onToggle={onToggleUsual} label="usual pace" />
             {/if}
@@ -85,6 +85,6 @@
 {/if}
 
 <style>
-    .charts { padding: 0 var(--stor-panel-padding) var(--stor-panel-padding); }
+    .charts { padding: var(--stor-panel-padding); }
     .plots { display: grid; gap: 14px; }
 </style>

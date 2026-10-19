@@ -22,7 +22,7 @@
     import { emptyHealthWeek } from "../health/week-data.js";
     import { WeekFollower } from "../health/week-follow.svelte.js";
     import { loadUsualPace, saveUsualPace } from "../health/usual-pace.js";
-    import type { EndlessAxis } from "@hearthlog/sdk/endless";
+    import { shiftDay, type EndlessAxis } from "@hearthlog/sdk/endless";
 
     let { data: routeData } = $props();
     const resource = $derived(routeData.pageResource);
@@ -127,6 +127,8 @@
                         mealSlots={data.mealSlots}
                         {showUsual}
                         onToggleUsual={toggleUsual}
+                        current={date === visible}
+                        onStep={(step) => days?.goTo(shiftDay(visible, step), "smooth")}
                         onWeek={() => (weekOpen = true)}
                     />
                 {/snippet}

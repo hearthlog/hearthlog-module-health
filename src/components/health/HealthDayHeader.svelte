@@ -88,15 +88,17 @@
                 aria-label="{day.parts.weekday}, {day.parts.rest}{day.date === today ? ', today' : ''}"
                 onclick={() => onNavigate(day.date)}
             >
-                <span class="wd">
-                    {#if day.date === today}Today{:else}<span class="max-sm:hidden">{day.parts.weekday.slice(0, 3)}</span><span class="sm:hidden">{day.parts.weekday.slice(0, 2)}</span>{/if}
+                <span class="top">
+                    <span class="wd">
+                        {#if day.date === today}Today{:else}<span class="max-sm:hidden">{day.parts.weekday.slice(0, 3)}</span><span class="sm:hidden">{day.parts.weekday.slice(0, 2)}</span>{/if}
+                    </span>
+                    <span class="dn">{Number(day.date.slice(8, 10))}</span>
                 </span>
-                <span class="dn">{Number(day.date.slice(8, 10))}</span>
                 <span class="pips" aria-hidden="true">
                     {#if !day.future}
-                        {#if day.eat !== null}<i class="pip stor-tone-eat"><b class:over={day.eat > 1} style:width="{Math.min(1, day.eat) * 100}%"></b></i>{/if}
-                        {#if day.move !== null}<i class="pip stor-tone-move"><b style:width="{Math.min(1, day.move) * 100}%"></b></i>{/if}
-                        {#if day.body !== null}<i class="pip stor-tone-body"><b style:width={day.body ? "100%" : "0"}></b></i>{/if}
+                        {#if day.eat !== null}<i class="pip stor-tone-eat" class:some={day.eat > 0}><b class:over={day.eat > 1} style:width="{Math.min(1, day.eat) * 100}%"></b></i>{/if}
+                        {#if day.move !== null}<i class="pip stor-tone-move" class:some={day.move >= 1}><b style:width="{Math.min(1, day.move) * 100}%"></b></i>{/if}
+                        {#if day.body !== null}<i class="pip stor-tone-body" class:some={day.body}><b style:width={day.body ? "100%" : "0"}></b></i>{/if}
                     {/if}
                 </span>
             </button>
@@ -118,7 +120,7 @@
         display: grid; min-width: 0; flex: 1 1 auto; grid-template-columns: 24px repeat(7, minmax(0, 1fr)) 24px; align-items: center; gap: var(--gap);
     }
     @media (min-width: 640px) {
-        .strip { --gap: 6px; flex: 0 1 auto; grid-template-columns: 32px repeat(7, 5rem) 32px; justify-content: start; }
+        .strip { --gap: 6px; flex: 0 1 auto; grid-template-columns: 32px repeat(7, 6rem) 32px; justify-content: start; }
     }
     /* Phones swipe the strip by a week; the arrows step aside. */
     @media (max-width: 767px) {
@@ -128,11 +130,15 @@
     .week-arrow { grid-row: 1; display: grid; place-items: center; height: 44px; border-radius: 10px; color: var(--stor-muted-text); }
     .week-arrow:hover { color: var(--stor-ink); background: var(--stor-surface-hover); }
     .week-arrow:focus-visible, .day:focus-visible { outline: 2px solid var(--stor-focus); outline-offset: 2px; }
+    /* A day is a tile: weekday and date over the three domain bars, each in its own colour. Today carries the "now" line. */
     .day {
-        position: relative; z-index: 1; grid-row: 1; display: flex; min-height: 44px; flex-direction: column; align-items: center; gap: 1px;
-        padding: 8px 0 9px; border-radius: 14px; color: var(--stor-muted-text);
+        position: relative; z-index: 1; grid-row: 1; display: flex; min-height: 44px; flex-direction: column; align-items: stretch; gap: 8px;
+        padding: 8px 6px 9px; border-radius: 14px; color: var(--stor-muted-text);
+        box-shadow: inset 0 0 0 1px var(--stor-border);
     }
-    @media (min-width: 640px) { .day { padding: 10px 0 11px; border-radius: 16px; } }
+    @media (min-width: 640px) { .day { padding: 10px 12px 12px; } }
+    .day.on { box-shadow: none; }
+    .day.today { box-shadow: inset 0 -2px 0 var(--stor-now); }
     .day:hover:not(.on) { background: var(--stor-surface-hover); }
     /* The selected day's pill sits under the buttons and slides by the share of a day the list has moved. */
     .pill {
@@ -140,16 +146,26 @@
         background: var(--stor-surface-raised); box-shadow: var(--stor-shadow-sm);
         transform: translateX(calc(var(--shift, 0) * (100% + var(--gap))));
     }
-    @media (min-width: 640px) { .pill { border-radius: 16px; } }
     .day.future:not(.on) { opacity: .5; }
-    .wd { font-size: 11px; font-weight: 600; letter-spacing: .03em; }
-    .day.on .wd, .day.today .wd { color: var(--stor-accent-text); }
-    .dn { font-size: 17px; font-weight: 600; line-height: 1.2; letter-spacing: -.02em; color: var(--stor-ink); }
-    @media (min-width: 640px) { .dn { font-size: 19px; } }
-    .pips { display: flex; flex-direction: column; gap: 3px; width: 24px; min-height: 16px; margin-top: 5px; }
-    @media (min-width: 640px) { .pips { width: 30px; } }
+    .top { display: flex; align-items: baseline; justify-content: space-between; gap: 4px; }
+    .wd { font-size: 11px; line-height: 16px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
+    .day.on .wd, .day.today .wd { color: var(--stor-ink); }
+    .dn { font-family: var(--stor-font-serif); font-size: 20px; font-weight: 500; line-height: 22px; letter-spacing: -.01em; color: var(--stor-ink); }
+    .pips { display: flex; flex-direction: column; gap: 4px; min-height: 16px; }
     .pip { display: block; height: 4px; overflow: hidden; border-radius: 2px; background: color-mix(in srgb, var(--tone) 20%, var(--stor-surface)); }
     .pip b { display: block; height: 100%; border-radius: 2px; background: var(--tone); transition: width 200ms ease; }
-    /* Past the calorie goal the pip ends in amber stripes: colour is never the only signal. */
+    /* Past the calorie goal the bar ends in amber stripes: colour is never the only signal. */
     .pip b.over { background: repeating-linear-gradient(135deg, var(--tone) 0 3px, var(--stor-warning) 3px 5px); }
+    /* Phones: a compact tile with three dots, lit for what the day holds. */
+    @media (max-width: 767px) {
+        .day { align-items: center; justify-content: center; gap: 4px; height: 64px; padding: 0; border-radius: 14px; box-shadow: none; }
+        .day.today { box-shadow: inset 0 -2px 0 var(--stor-now); }
+        .top { flex-direction: column; align-items: center; gap: 2px; }
+        .wd { font-size: 10px; line-height: 12px; }
+        .dn { font-family: var(--stor-font-sans); font-size: 17px; font-weight: 600; line-height: 20px; }
+        .pips { flex-direction: row; gap: 3px; min-height: 5px; }
+        .pip { width: 5px; height: 5px; border-radius: 50%; background: var(--tone); opacity: .3; }
+        .pip.some { opacity: 1; }
+        .pip b { display: none; }
+    }
 </style>

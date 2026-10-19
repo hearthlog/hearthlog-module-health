@@ -22,6 +22,8 @@
         mealSlots,
         showUsual,
         onToggleUsual,
+        current = true,
+        onStep,
         onWeek,
     }: {
         date: string;
@@ -32,6 +34,9 @@
         mealSlots: StoredMealSlot[];
         showUsual: boolean;
         onToggleUsual: () => void;
+        /** The day in view; on desktop only this one is drawn, on touch the neighbours peek in. */
+        current?: boolean;
+        onStep?: (step: -1 | 1) => void;
         onWeek: () => void;
     } = $props();
 
@@ -45,8 +50,8 @@
     const nextMeal = $derived(day && sources.meals ? nextEmptyMealSlot(effectiveMealSlots(mealSlots), day.timeline) : null);
 </script>
 
-<section class="day" aria-label={label} data-day={date}>
-    <HealthDayTitle {date} {today} {onWeek} />
+<section class="day" class:away={!current} aria-label={label} data-day={date}>
+    <HealthDayTitle {date} {today} {onStep} {onWeek} />
     <div class="body">
         <!-- Phones keep the numbers and charts in the sheet behind the top bar's figures. -->
         <div class="max-md:hidden"><HealthDayReadout {date} {today} {sources} {day} {loading} /></div>
@@ -84,5 +89,11 @@
     @container health-day (min-width: 32rem) { .body :global(.day-charts) { display: none; } }
     /* A narrow day reads its log first; the charts that retell it follow. */
     @container health-day (max-width: calc(32rem - 1px)) { .body :global(.day-charts) { order: 1; } }
+    /* A mouse and keyboard see one day at a time; the days beside it stay in the pager for the slide between them. */
+    @media (hover: hover) and (pointer: fine) and (min-width: 1024px) {
+        .day { transition: opacity 120ms ease, visibility 0s; }
+        /* Hidden, not just clear: the day beside this one is out of reach of the pointer, the tab key and screen readers. */
+        .day.away { opacity: 0; visibility: hidden; transition: opacity 120ms ease, visibility 0s 120ms; }
+    }
     .body { display: flex; flex-direction: column; gap: var(--stor-section-gap); }
 </style>
