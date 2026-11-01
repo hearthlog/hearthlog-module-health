@@ -161,7 +161,18 @@
     }
   ],
   "server": {
-    "entry": "./src/server/index.ts"
+    "entry": "./src/server/index.ts",
+    "routes": [
+      "/api/food-catalog"
+    ],
+    "bindings": [
+      {
+        "binding": "KAL",
+        "type": "service",
+        "setting": "catalogWorker",
+        "optional": true
+      }
+    ]
   },
   "refreshKeys": [
     "app:calories",
