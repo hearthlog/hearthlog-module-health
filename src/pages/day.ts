@@ -1,29 +1,20 @@
 import type { ModuleLoadEvent } from "@hearthlog/sdk/runtime";
-import { deferPage } from '@hearthlog/sdk/runtime';
+import { appClock, deferPage, tenant } from '@hearthlog/sdk/runtime';
 import { queryDatabase } from '@hearthlog/sdk/data';
-import { tenant } from '@hearthlog/sdk/runtime';
-import { appClock } from '@hearthlog/sdk/runtime';
 import { parseSelectedDate, toLocalDateString, type StoredMealSlot } from '../calories/logic.js';
 import { healthSources } from '../health/week-data.js';
 import type { HealthSources } from '../health/day.js';
+import { loadDayView, type DayView } from '../health/day-page.js';
 
-/** What the Health list needs besides its days, which it reads itself as they scroll into view. */
+/** One day of Health: the budget line, the diary, and weight and steps beside them. */
 export interface HealthPageData {
-    /** The day the list opens at. */
     selectedDate: string;
     today: string;
     sources: HealthSources;
-    /** Meal slots, so a day can offer its next empty meal. */
     mealSlots: StoredMealSlot[];
-    /** The earliest day with anything logged; the list reaches back to its week. */
-    firstLogged: string | null;
+    view: DayView | null;
 }
 
-/**
- * Health: an endless list of days, each with its meals, movement, and body
- * measurements. Every figure is a SQL aggregate from the owning feature's
- * repository, read per day as the day scrolls into view.
- */
 export const load = (event: ModuleLoadEvent) => {
     const sources = healthSources(tenant.features);
     if (sources.meals) event.depends('app:calories');
@@ -34,20 +25,15 @@ export const load = (event: ModuleLoadEvent) => {
         today: toLocalDateString(),
         sources,
         mealSlots: [],
-        firstLogged: null,
+        view: null,
     };
     return deferPage(event, initial, async (): Promise<HealthPageData> => {
         const today = toLocalDateString(await appClock.ready());
-        const [mealSlots, firstLogged] = await queryDatabase((repositories) => Promise.all([
-            sources.meals ? repositories.calories.getMealSlots() : [],
-            repositories.healthDay.getFirstLoggedDay(sources),
-        ]));
-        return {
-            selectedDate: parseSelectedDate(event.url.searchParams.get('date'), today),
-            today,
-            sources,
-            mealSlots,
-            firstLogged,
-        };
+        const selectedDate = parseSelectedDate(event.url.searchParams.get('date'), today);
+        return queryDatabase(async (repositories) => {
+            const mealSlots = sources.meals ? await repositories.calories.getMealSlots() : [];
+            const view = await loadDayView(repositories, sources, mealSlots, selectedDate);
+            return { selectedDate, today, sources, mealSlots, view };
+        });
     });
 };

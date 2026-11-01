@@ -53,6 +53,48 @@ export interface WeightPageData {
     /** Every weigh-in on record. */
     total: number;
     defaultDate: string;
+    /** The seven-day mean at the latest weigh-in. */
+    trendNow: number | null;
+    /** The goal in force today, when it names a target weight. */
+    goal: WeightGoal | null;
+}
+
+/** What the nutrition goal says about weight: where it started, where it aims, and by when. */
+export interface WeightGoal {
+    targetKg: number;
+    startKg: number;
+    startDate: string;
+    /** Empty when the goal names no date. */
+    targetDate: string;
+    calories: number;
+    proteinG: number;
+    /** Kilograms a week the plan needs; negative for a loss. Null without a date. */
+    plannedPace: number | null;
+}
+
+export function weightGoal(goal: {
+    calculation_target_weight_kg: number;
+    calculation_current_weight_kg: number;
+    effective_from: string;
+    calculation_target_date: string;
+    calories_target: number;
+    protein_target_g: number;
+} | null): WeightGoal | null {
+    const targetKg = Number(goal?.calculation_target_weight_kg ?? 0);
+    if (!goal || !(targetKg > 0)) return null;
+    const startKg = Number(goal.calculation_current_weight_kg) || targetKg;
+    const startDate = String(goal.effective_from).slice(0, 10);
+    const targetDate = String(goal.calculation_target_date ?? '').slice(0, 10);
+    const weeks = targetDate ? (new Date(`${targetDate}T12:00`).getTime() - new Date(`${startDate}T12:00`).getTime()) / (7 * 86_400_000) : 0;
+    return {
+        targetKg,
+        startKg,
+        startDate,
+        targetDate,
+        calories: Number(goal.calories_target) || 0,
+        proteinG: Number(goal.protein_target_g) || 0,
+        plannedPace: weeks > 0 ? (targetKg - startKg) / weeks : null,
+    };
 }
 
 /** `−0,3 kg a week`; empty without a pace. */

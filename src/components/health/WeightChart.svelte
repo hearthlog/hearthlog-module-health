@@ -8,6 +8,8 @@
      * Weight over time in the Body colour: the seven-day mean as a smooth line,
      * each weigh-in as a hollow point, the latest one named. A soft band marks
      * the reference range when it reaches the plot. Hovering names a weigh-in.
+     * With a goal, its weight is a dashed line, the plan a dotted one, and the
+     * trend carries on dashed at its actual pace to where it meets the goal.
      */
     let {
         weighIns,
@@ -15,6 +17,10 @@
         from,
         to,
         band = null,
+        goal = null,
+        plan = null,
+        projection = null,
+        today = null,
         label,
     }: {
         weighIns: readonly WeightPoint[];
@@ -24,6 +30,14 @@
         to: string;
         /** Weights at BMI 18.5 and 24.9 for the current height. */
         band?: { min: number; max: number } | null;
+        /** The goal weight. */
+        goal?: number | null;
+        /** The planned line, from the goal's start to its date. */
+        plan?: { from: string; fromKg: number; to: string; toKg: number } | null;
+        /** The trend carried on at its actual pace, from its last point. */
+        projection?: { from: string; fromKg: number; to: string; toKg: number } | null;
+        /** Marks today when the axis runs past it. */
+        today?: string | null;
         /** Spoken form, for example "Weight over the last 90 days". */
         label: string;
     } = $props();
@@ -41,7 +55,12 @@
 
     // The vertical scale fits the drawn values with some air; a reference range close below them is kept in view.
     const scale = $derived.by(() => {
-        const values = [...weighIns.map((point) => point.weight), ...mean.map((point) => point.mean)];
+        const values = [
+            ...weighIns.map((point) => point.weight),
+            ...mean.map((point) => point.mean),
+            ...(goal ? [goal] : []),
+            ...(projection ? [projection.toKg] : []),
+        ];
         if (values.length === 0) return { low: 0, high: 1 };
         let lo = values[0];
         let hi = values[0];
@@ -63,6 +82,20 @@
         const bottom = y(Math.max(band.min, scale.low));
         return { top, height: bottom - top, labelY: Math.max(top + 13, pad.top + 13) };
     });
+
+    /** A straight line between two dated weights, cut to the days on the axis. */
+    function segment(line: { from: string; fromKg: number; to: string; toKg: number } | null) {
+        if (!line) return null;
+        const start = dayNumber(line.from);
+        const end = dayNumber(line.to);
+        const at = (day: number) => line.fromKg + ((line.toKg - line.fromKg) * (day - start)) / Math.max(1, end - start);
+        const a = Math.max(firstDay, start);
+        const b = Math.min(lastDay, end);
+        return b > a ? { x1: x(a), y1: y(at(a)), x2: x(b), y2: y(at(b)) } : null;
+    }
+    const planLine = $derived(segment(plan));
+    const projectionLine = $derived(segment(projection));
+    const todayX = $derived(today && dayNumber(today) < lastDay && dayNumber(today) > firstDay ? x(dayNumber(today)) : null);
 
     const linePoints = $derived(mean.map((point) => ({ x: x(dayNumber(point.date)), y: y(point.mean) })));
     const line = $derived(monotonePath(linePoints));
@@ -132,6 +165,16 @@
         {#each xTicks as tick (tick.at)}
             <text class="axis" x={tick.at} y={height - 7} text-anchor={tick.end ? "end" : "middle"}>{tick.text}</text>
         {/each}
+        {#if goal}
+            <line class="goal" x1={pad.left} x2={width - pad.right} y1={y(goal)} y2={y(goal)} />
+            <text class="goal-label" x={pad.left + 6} y={y(goal) - 6}>Goal {formatFixed(goal, 1)} kg</text>
+        {/if}
+        {#if planLine}<line class="plan" x1={planLine.x1} y1={planLine.y1} x2={planLine.x2} y2={planLine.y2} />{/if}
+        {#if projectionLine}<line class="projection" x1={projectionLine.x1} y1={projectionLine.y1} x2={projectionLine.x2} y2={projectionLine.y2} />{/if}
+        {#if todayX !== null}
+            <line class="today" x1={todayX} x2={todayX} y1={pad.top} y2={pad.top + plotHeight} />
+            <text class="today-label" x={todayX + 4} y={pad.top + 10}>Today</text>
+        {/if}
         {#if linePoints.length > 1}<path class="line" d={line} />{/if}
         {#if showPoints}
             {#each weighIns as point}
@@ -170,4 +213,10 @@
     .tag { fill: var(--stor-ink); }
     .tag-text { font-size: 11px; font-weight: 600; fill: var(--stor-surface); font-variant-numeric: tabular-nums; }
     .hit { fill: transparent; }
+    .goal { stroke: var(--stor-ink); stroke-opacity: .55; stroke-width: 1.2; stroke-dasharray: 6 4; }
+    .goal-label { font-size: 11px; font-weight: 600; fill: var(--stor-muted-text); }
+    .plan { stroke: var(--stor-muted-text); stroke-width: 1.4; stroke-dasharray: 1.5 4; stroke-linecap: round; }
+    .projection { stroke: var(--tone); stroke-width: 2; stroke-dasharray: 6 5; stroke-linecap: round; opacity: .8; }
+    .today { stroke: var(--stor-now); stroke-width: 1.4; }
+    .today-label { font-size: 10.5px; font-weight: 600; fill: var(--stor-now); }
 </style>

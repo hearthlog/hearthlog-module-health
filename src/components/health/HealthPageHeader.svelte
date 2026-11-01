@@ -5,7 +5,7 @@
     import { tenant } from "@hearthlog/sdk/runtime";
     import type { Snippet } from "svelte";
 
-    type HealthSection = "day" | "body" | "nutrition" | "activities" | "foods";
+    type HealthSection = "day" | "body" | "trends" | "nutrition" | "activities" | "foods";
 
     let {
         active,

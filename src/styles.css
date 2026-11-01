@@ -8,6 +8,8 @@
     .stor-tone-eat { --tone: var(--stor-health-eat); }
     .stor-tone-move { --tone: var(--stor-health-move); }
     .stor-tone-body { --tone: var(--stor-health-body); }
+    /* A library row whose detail is open beside the table. */
+    .stor-row-selected { background: var(--stor-surface-muted); }
 }
 
 @media (max-width: 639px) {
