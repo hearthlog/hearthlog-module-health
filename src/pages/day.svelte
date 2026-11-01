@@ -1,185 +1,228 @@
 <script lang="ts">
-    import { onMount, untrack } from "svelte";
-    import { providePageResource } from "@hearthlog/sdk/runtime";
-    import { keepPageData } from "@hearthlog/sdk/runtime";
-    import { PageDataStatus } from "@hearthlog/sdk/ui";
-    import { DataPlaceholder } from "@hearthlog/sdk/ui";
-    import HealthDaysShell from "../components/health/HealthDaysShell.svelte";
-    import HealthDaysList from "../components/health/HealthDaysList.svelte";
-    import HealthDayBlock from "../components/health/HealthDayBlock.svelte";
-    import HealthWeekPanel from "../components/health/HealthWeekPanel.svelte";
-    import HealthLogMenu from "../components/health/HealthLogMenu.svelte";
-    import HealthLogSheet from "../components/health/HealthLogSheet.svelte";
-    import HealthDayReadout from "../components/health/HealthDayReadout.svelte";
-    import DayRiverCharts from "../components/health/DayRiverCharts.svelte";
-    import HealthGlance from "../components/health/HealthGlance.svelte";
-    import { BucketStore } from "@hearthlog/sdk/endless";
-    import { tenant } from "@hearthlog/sdk/runtime";
-    import { appClock } from "@hearthlog/sdk/runtime";
-    import { toLocalDateString } from "../calories/logic.js";
-    import { healthDayAxis } from "../health/day-list.js";
-    import { dayBlocks, loadHealthDayBlock, loadHealthSide, type HealthDayBlock as HealthDay } from "../health/day-blocks.js";
-    import { emptyHealthWeek } from "../health/week-data.js";
-    import { WeekFollower } from "../health/week-follow.svelte.js";
-    import { loadUsualPace, saveUsualPace } from "../health/usual-pace.js";
-    import { shiftDay, type EndlessAxis } from "@hearthlog/sdk/endless";
+    import { goto } from "$app/navigation";
+    import { page } from "$app/state";
+    import { appClock, contextualHref, keepPageData, providePageResource, tenant } from "@hearthlog/sdk/runtime";
+    import { CommandDrawer, DataPlaceholder, MobilePageAction, PageDataStatus } from "@hearthlog/sdk/ui";
+    import { formatFixed, formatNumber } from "@hearthlog/sdk/format";
+    import { shiftDay } from "@hearthlog/sdk/endless";
+    import IconLeft from "~icons/mdi/chevron-left";
+    import IconRight from "~icons/mdi/chevron-right";
+    import IconPlus from "~icons/mdi/plus";
+    import HealthPageHeader from "../components/health/HealthPageHeader.svelte";
+    import WeekStrip from "../components/day/WeekStrip.svelte";
+    import BudgetCard from "../components/day/BudgetCard.svelte";
+    import DiaryTable from "../components/day/DiaryTable.svelte";
+    import LogFoodSheet from "../components/day/LogFoodSheet.svelte";
+    import WeighIn from "../components/body/WeighIn.svelte";
+    import Sparkline from "../components/health/Sparkline.svelte";
+    import { effectiveMealSlots, resolveDefaultMeal, toLocalDateString } from "../calories/logic.js";
+    import { dayArrowStep } from "../health/day.js";
+    import { dayTitle, shortDate } from "../health/format.js";
+    import type { HealthPageData } from "./day.js";
 
     let { data: routeData } = $props();
     const resource = $derived(routeData.pageResource);
-    // The last data stays on screen while the next load runs, so a save never flashes the page.
+    // The last day stays on screen while the next one loads, so stepping days never flashes the page.
     const kept = keepPageData(() => resource);
     providePageResource(() => kept.display);
-    const data = $derived(kept.data);
+    const data = $derived(kept.data as HealthPageData);
+    const view = $derived(data.view);
 
-    const today = $derived(toLocalDateString(appClock.now()));
-    const showWeek = $derived(data.sources.meals || data.sources.activity || data.sources.body);
+    const now = $derived(appClock.now());
+    const today = $derived(toLocalDateString(now));
+    const date = $derived(data.selectedDate);
+    const slots = $derived(effectiveMealSlots(data.mealSlots).filter((slot) => !slot.archived));
+    const isToday = $derived(date === today);
 
-    // The usual pace is a device preference, off until someone wants the comparison.
-    let showUsual = $state(false);
-    let days = $state<ReturnType<typeof HealthDaysList>>();
-    onMount(() => {
-        void loadUsualPace().then((on) => {
-            showUsual = on;
-            if (on) days?.refresh();
-        });
-    });
-    function toggleUsual(): void {
-        showUsual = !showUsual;
-        void saveUsualPace(showUsual).catch(() => undefined);
-        // Days read without the pace read again with it.
-        if (showUsual) days?.refresh();
+    let logOpen = $state(false);
+    let logMeal = $state("");
+    let logTerm = $state("");
+    let weighOpen = $state(false);
+
+    function openLog(meal?: string, term = ""): void {
+        logMeal = meal ?? resolveDefaultMeal(slots, isToday ? now : `${date}T12:00`);
+        logTerm = term;
+        logOpen = true;
     }
 
-    // The list keeps its keys while it is open, so its axis is drawn once, from the first load.
-    let drawn: EndlessAxis | undefined;
-    const axis = $derived(kept.loading ? null : (drawn ??= healthDayAxis(untrack(() => data.today), untrack(() => data.firstLogged))));
+    function goToDay(day: string): void {
+        const url = new URL(page.url.href);
+        if (day === today) url.searchParams.delete("date");
+        else url.searchParams.set("date", day);
+        void goto(`${url.pathname}${url.search}`, { replace: true, reset: false });
+    }
 
-    const blocks = new BucketStore<HealthDay>(
-        dayBlocks((repositories, date) => loadHealthDayBlock(repositories, data.sources, date, {
-            now: appClock.now(),
-            today: toLocalDateString(appClock.now()),
-            usualPace: showUsual,
-        })),
-        "Could not read Health days",
-    );
-
-    // The day at the top edge; the strip, the week panel, and the log menu follow it.
-    let visible = $state(untrack(() => routeData.pageResource.data.selectedDate));
-    const side = new WeekFollower((repositories, date) => loadHealthSide(repositories, data.sources, date), "Could not read the Health week");
-    let sideRevision = -1;
+    // A shortcut from elsewhere (`?log=1`) opens the sheet once, then leaves the address.
     $effect(() => {
-        const date = visible;
-        const revision = kept.revision;
-        if (kept.loading) return;
-        if (revision !== sideRevision) {
-            sideRevision = revision;
-            untrack(() => side.refresh(date));
+        if (kept.loading || !page.url.searchParams.has("log")) return;
+        openLog();
+        const url = new URL(page.url.href);
+        url.searchParams.delete("log");
+        void goto(`${url.pathname}${url.search}`, { replace: true, reset: false });
+    });
+
+    function keydown(event: KeyboardEvent): void {
+        if (logOpen || weighOpen) return;
+        const step = dayArrowStep(event);
+        if (step !== 0) {
+            event.preventDefault();
+            goToDay(shiftDay(date, step));
             return;
         }
-        // A short pause, so a fast scroll reads the week it stops in, not every week it passes.
-        const timer = setTimeout(() => side.follow(date), 120);
-        return () => clearTimeout(timer);
-    });
-    const sideData = $derived(side.get(visible));
-    const visibleDay = $derived(blocks.get(visible));
+        const target = event.target as HTMLElement | null;
+        if (event.metaKey || event.ctrlKey || event.altKey || target?.closest("input, textarea, select, [contenteditable='true'], [role='dialog']")) return;
+        const key = event.key.toLowerCase();
+        if (key === "f" && data.sources.meals) { event.preventDefault(); openLog(); }
+        else if (key === "w" && data.sources.body) { event.preventDefault(); weighOpen = true; }
+        else if (key === "t" && !isToday) { event.preventDefault(); goToDay(today); }
+    }
 
-    let weekOpen = $state(false);
-    /** How far the days sit past the day in view, so the strip follows a swipe. */
-    let shift = $state(0);
+    const mealCalories = $derived(Object.fromEntries((view?.meals ?? []).map((meal) => [meal.slot.id, meal.calories])));
+    const weight = $derived(view?.weight ?? null);
 </script>
 
+<svelte:window onkeydown={keydown} />
 <svelte:head><title>Health day | {tenant.title}</title></svelte:head>
 
 <PageDataStatus {resource} />
-<HealthDaysShell
-    active="day"
-    date={visible}
-    {today}
-    week={sideData?.week ?? emptyHealthWeek(visible)}
-    targets={sideData?.targets ?? { calories: 0, steps: 0 }}
-    sources={data.sources}
-    onNavigate={(date) => days?.goTo(date, "smooth")}
-    {shift}
-    bind:weekOpen
-    main="1.85fr"
->
-    {#snippet action()}<HealthLogMenu date={visible} sources={data.sources} />{/snippet}
-    {#snippet list()}
-        {#if axis}
-            <HealthDaysList
-                bind:this={days}
-                bind:visible
-                bind:shift
-                {axis}
-                store={blocks}
-                {today}
-                opening={data.selectedDate}
-                revision={kept.revision}
-                blocked={weekOpen}
-                label="Health days"
-            >
-                {#snippet block(date, day)}
-                    <HealthDayBlock
-                        {date}
-                        {today}
-                        {day}
-                        sources={data.sources}
-                        mealSlots={data.mealSlots}
-                        {showUsual}
-                        onToggleUsual={toggleUsual}
-                        current={date === visible}
-                        onStep={(step) => days?.goTo(shiftDay(visible, step), "smooth")}
-                        onWeek={() => (weekOpen = true)}
-                    />
-                {/snippet}
-            </HealthDaysList>
-        {:else}
-            <DataPlaceholder rows={6} label="Loading days" />
-        {/if}
-    {/snippet}
-    {#snippet aside()}
-        {#if showWeek}
-            <HealthWeekPanel
-                week={sideData?.week ?? emptyHealthWeek(visible)}
-                selected={visible}
-                {today}
-                targets={sideData?.targets ?? { calories: 0, steps: 0 }}
-                averages={sideData?.averages ?? { calories: 0, steps: 0 }}
-                sources={data.sources}
-                body={sideData?.body ?? null}
-                loading={sideData === undefined}
-            />
-        {/if}
-    {/snippet}
-</HealthDaysShell>
-<HealthLogSheet date={visible} {today} sources={data.sources} mealSlots={data.mealSlots} />
 
-<!-- Phones: the day's three figures in the top bar; the readout, the day's charts and the week in its sheet. -->
-<HealthGlance date={visible} {today} sources={data.sources} eat={visibleDay?.eat?.calories ?? null} steps={visibleDay?.move?.steps ?? null} weight={visibleDay?.body?.weight ?? null}>
-    <div class="flex flex-col gap-[var(--stor-section-gap)]">
-        <HealthDayReadout date={visible} {today} sources={data.sources} day={visibleDay} loading={visibleDay === undefined} />
-        {#if visibleDay}
-            <DayRiverCharts
-                rows={visibleDay.timeline}
-                nowTime={visible === today ? appClock.now().toTimeString().slice(0, 5) : null}
-                targets={visibleDay.targets}
-                sources={data.sources}
-                usualPace={visibleDay.usualPace}
-                {showUsual}
-                onToggleUsual={toggleUsual}
-            />
-        {/if}
-        {#if showWeek}
-            <HealthWeekPanel
-                week={sideData?.week ?? emptyHealthWeek(visible)}
-                selected={visible}
-                {today}
-                targets={sideData?.targets ?? { calories: 0, steps: 0 }}
-                averages={sideData?.averages ?? { calories: 0, steps: 0 }}
-                sources={data.sources}
-                body={sideData?.body ?? null}
-                loading={sideData === undefined}
-            />
-        {/if}
+<div class="stor-refined w-full overflow-x-hidden">
+    <HealthPageHeader active="day" />
+    <div class="stor-page p-2.5 sm:p-3">
+        <div class="day">
+            <header class="dh">
+                <div class="nav">
+                    <button type="button" class="sq" aria-label="Previous day" aria-keyshortcuts="ArrowLeft" onclick={() => goToDay(shiftDay(date, -1))}><IconLeft class="h-5 w-5" /></button>
+                    <button type="button" class="sq" aria-label="Next day" aria-keyshortcuts="ArrowRight" onclick={() => goToDay(shiftDay(date, 1))}><IconRight class="h-5 w-5" /></button>
+                    {#if !isToday}<button type="button" class="pill" aria-keyshortcuts="T" onclick={() => goToDay(today)}>Today</button>{/if}
+                </div>
+                <div class="ttl">
+                    <p class="over">{#if isToday}<i class="now" aria-hidden="true"></i>Today · {now.toTimeString().slice(0, 5)}{:else}{date < today ? "Looking back" : "Ahead"}{/if}</p>
+                    <h1>{dayTitle(date, today)}</h1>
+                </div>
+                <div class="acts">
+                    {#if data.sources.body}<button type="button" class="btn" aria-keyshortcuts="W" onclick={() => (weighOpen = true)}>Weigh in <span class="kbd">W</span></button>{/if}
+                    {#if data.sources.meals}<button type="button" class="btn pri" aria-keyshortcuts="F" onclick={() => openLog()}><IconPlus class="h-4 w-4" /> Log food <span class="kbd inv">F</span></button>{/if}
+                </div>
+            </header>
+
+            {#if view && data.sources.meals}
+                <WeekStrip week={view.week} selected={date} {today} />
+            {/if}
+
+            {#if !view}
+                <DataPlaceholder rows={8} label="Loading the day" />
+            {:else}
+                <div class="grid">
+                    <div class="main">
+                        {#if data.sources.meals}
+                            <BudgetCard {view} {today} />
+                            <section class="stor-panel diary" aria-label="Food diary">
+                                <DiaryTable {date} {today} meals={view.meals} next={view.next} onLog={(meal, term) => openLog(meal, term)} />
+                            </section>
+                        {/if}
+                    </div>
+                    <aside class="side">
+                        {#if weight}
+                            <a class="stor-panel card link" href={contextualHref("/bmi")}>
+                                <p class="over">Weight trend</p>
+                                {#if weight.trend !== null}
+                                    <p class="big">{formatFixed(weight.trend, 1)}<small>kg</small></p>
+                                    <p class="sub">
+                                        {#if weight.pace !== null}<span>{formatFixed(weight.pace, 2, { signed: true })} kg/week</span>{/if}
+                                        {#if weight.latest}<span>{weight.latest.date === date ? "Today" : `Last ${shortDate(weight.latest.date, date)}`} {formatFixed(weight.latest.weight, 1)}</span>{/if}
+                                    </p>
+                                    {#if weight.means.length > 1}
+                                        <div class="spark"><Sparkline points={weight.means.map((point, index) => ({ x: index, y: point.mean }))} tone="body" label="Weight trend over 30 days" width={260} height={44} /></div>
+                                    {/if}
+                                    <p class="foot">{weight.weighIns30} weigh-ins in the last 30 days</p>
+                                {:else}
+                                    <p class="sub">No weigh-ins yet. One number in the morning is enough.</p>
+                                {/if}
+                            </a>
+                        {/if}
+                        {#if view.steps}
+                            <a class="stor-panel card link" href={contextualHref("/activities")}>
+                                <p class="over">Steps</p>
+                                <p class="big">{formatNumber(view.steps.steps)}{#if view.budget.steps > 0}<small>+{formatNumber(view.budget.steps)} kcal</small>{/if}</p>
+                                {#if view.steps.target > 0}
+                                    <span class="sbar"><i style:width="{Math.min(100, (view.steps.steps / view.steps.target) * 100)}%"></i></span>
+                                    <p class="sub"><span>{view.steps.steps >= view.steps.target ? "Target reached" : `${formatNumber(view.steps.target - view.steps.steps)} to ${formatNumber(view.steps.target)}`}</span></p>
+                                {/if}
+                                <p class="foot">Steps sync on their own and add to the day's budget.</p>
+                            </a>
+                        {/if}
+                    </aside>
+                </div>
+            {/if}
+        </div>
     </div>
-</HealthGlance>
+</div>
+
+{#if data.sources.meals && view}
+    <LogFoodSheet
+        show={logOpen}
+        {date}
+        {today}
+        {slots}
+        meal={logMeal}
+        term={logTerm}
+        eaten={view.budget.eaten}
+        budget={view.budget.budget}
+        {mealCalories}
+        onClose={() => (logOpen = false)}
+    />
+{/if}
+
+<CommandDrawer show={weighOpen} title="Weigh in" onClose={() => (weighOpen = false)}>
+    {#if weighOpen}<WeighIn {date} onSaved={() => (weighOpen = false)} />{/if}
+</CommandDrawer>
+
+{#if data.sources.meals}
+    <MobilePageAction hideWhenModalOpen isModalOpen={logOpen || weighOpen}>
+        <button type="button" class="mob" onclick={() => openLog()}><IconPlus class="h-5 w-5" /> Log food</button>
+    </MobilePageAction>
+{/if}
+
+<style>
+    .day { display: flex; flex-direction: column; gap: var(--stor-section-gap); padding-bottom: 24px; }
+    .dh { display: flex; align-items: center; gap: 16px; }
+    .nav { display: flex; align-items: center; gap: 4px; }
+    .sq { display: grid; width: 36px; height: 36px; place-items: center; border-radius: 10px; color: var(--stor-ink); box-shadow: inset 0 0 0 1px var(--stor-border); background: var(--stor-surface); }
+    .sq:hover { background: var(--stor-surface-hover); }
+    .pill { height: 36px; padding: 0 12px; margin-left: 4px; border-radius: 10px; font-size: 13.5px; font-weight: 600; color: var(--stor-ink); box-shadow: inset 0 0 0 1px var(--stor-border); background: var(--stor-surface); }
+    .ttl { display: flex; min-width: 0; flex: 1; flex-direction: column; gap: 2px; }
+    .over { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; letter-spacing: .02em; color: var(--stor-muted-text); font-variant-numeric: tabular-nums; }
+    .now { width: 7px; height: 7px; border-radius: 50%; background: var(--stor-now); }
+    h1 { font-family: var(--stor-font-serif); font-size: 30px; font-weight: 500; line-height: 1.15; letter-spacing: -.01em; color: var(--stor-ink); }
+    .acts { display: flex; gap: 8px; }
+    .btn { display: inline-flex; height: 40px; align-items: center; gap: 8px; padding: 0 14px; border-radius: 12px; font-size: 14px; font-weight: 600; color: var(--stor-ink); background: var(--stor-surface); box-shadow: inset 0 0 0 1px var(--stor-border); }
+    .btn:hover { background: var(--stor-surface-hover); }
+    .btn.pri { color: var(--stor-action-text, #fff); background: var(--stor-action); box-shadow: none; }
+    .btn.pri:hover { background: var(--stor-action-hover); }
+    .kbd { display: inline-grid; min-width: 20px; height: 20px; padding: 0 4px; place-items: center; border-radius: 5px; font-size: 11px; font-weight: 500; color: var(--stor-muted-text); box-shadow: inset 0 0 0 1px var(--stor-border); }
+    .kbd.inv { color: inherit; opacity: .75; box-shadow: inset 0 0 0 1px currentColor; }
+    .grid { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: var(--stor-section-gap); align-items: start; }
+    .main, .side { display: flex; min-width: 0; flex-direction: column; gap: var(--stor-section-gap); }
+    .diary { padding: 8px 10px 12px; }
+    .card { display: flex; flex-direction: column; gap: 6px; padding: 18px 20px; color: inherit; text-decoration: none; }
+    .link:hover { box-shadow: var(--stor-elevation-2); }
+    .big { font-size: 34px; font-weight: 650; line-height: 1.05; letter-spacing: -.03em; color: var(--stor-ink); font-variant-numeric: tabular-nums; }
+    .big small { margin-left: 8px; font-size: 13.5px; font-weight: 500; letter-spacing: 0; color: var(--stor-muted-text); }
+    .sub { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 13px; color: var(--stor-muted-text); font-variant-numeric: tabular-nums; }
+    .spark { height: 44px; margin-top: 4px; }
+    .foot { margin-top: 2px; font-size: 12px; color: var(--stor-muted-text); }
+    .sbar { display: block; height: 6px; margin-top: 4px; border-radius: 3px; background: var(--stor-surface-muted); overflow: hidden; }
+    .sbar i { display: block; height: 100%; border-radius: inherit; background: var(--stor-health-move); }
+    .mob { display: inline-flex; width: 100%; height: 48px; align-items: center; justify-content: center; gap: 8px; border-radius: 14px; font-size: 15px; font-weight: 600; color: var(--stor-action-text, #fff); background: var(--stor-action); }
+    @media (max-width: 1100px) { .grid { grid-template-columns: minmax(0, 1fr); } .side { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (max-width: 767px) {
+        .dh { flex-wrap: wrap; gap: 8px 12px; }
+        .ttl { order: -1; flex-basis: 100%; }
+        h1 { font-size: 24px; }
+        .acts .pri, .kbd { display: none; }
+        .acts { margin-left: auto; }
+        .side { grid-template-columns: minmax(0, 1fr); }
+        .diary { padding: 4px 4px 8px; }
+    }
+</style>

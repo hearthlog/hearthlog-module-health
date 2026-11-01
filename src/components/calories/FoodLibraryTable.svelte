@@ -33,6 +33,8 @@
         onFavorite,
         onEdit,
         onDelete,
+        onSelect,
+        selectedId = null,
         empty,
     }: {
         foods: FoodItem[];
@@ -49,6 +51,9 @@
         onFavorite: (food: FoodItem) => void;
         onEdit: (food: FoodItem) => void;
         onDelete: (food: FoodItem) => void;
+        /** Opens a food's detail beside the table. */
+        onSelect?: (food: FoodItem) => void;
+        selectedId?: string | null;
         /** Drawn in place of the table when nothing matches. */
         empty?: Snippet;
     } = $props();
@@ -67,7 +72,7 @@
             id: "name",
             enableSorting: true,
             header: (context) => renderComponent(DataTableHeader, { name: "Food", context }),
-            cell: (info) => renderComponent(FoodNameCell, { food: food(info.row.original) }),
+            cell: (info) => renderComponent(FoodNameCell, { food: food(info.row.original), onSelect: onSelect ? () => onSelect(food(info.row.original)) : undefined }),
         }),
         columnHelper.accessor((row) => row.calories_per_100g, {
             id: "calories",
@@ -125,6 +130,7 @@
         variant="quiet"
         label="Food library"
         emptyContent={empty}
+        rowClass={(row) => (selectedId && row.id === selectedId ? "stor-row-selected" : "")}
         testId="food-table"
         scrollTestId="food-table-scroll"
     />

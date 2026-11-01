@@ -32,9 +32,9 @@
         {
           "id": "log-food",
           "label": "Log food",
-          "subtitle": "Open the calorie diary entry drawer",
+          "subtitle": "Open the log sheet on the Health day",
           "keywords": "food calories nutrition meal add",
-          "query": "?newEntry=1"
+          "href": "/health?log=1"
         }
       ]
     },
@@ -63,7 +63,6 @@
       "path": "/health",
       "page": "./src/pages/day.svelte",
       "load": "./src/pages/day.ts",
-      "fitsScreen": true,
       "requires": {
         "features": [
           "bmi",
@@ -71,6 +70,28 @@
           "activities"
         ],
         "minimum": 2
+      }
+    },
+    {
+      "path": "/health/trends",
+      "page": "./src/pages/trends.svelte",
+      "load": "./src/pages/trends.ts",
+      "requires": {
+        "features": [
+          "calories"
+        ],
+        "minimum": 1
+      }
+    },
+    {
+      "path": "/bmi/goal",
+      "page": "./src/pages/goal.svelte",
+      "load": "./src/pages/goal.ts",
+      "requires": {
+        "features": [
+          "calories"
+        ],
+        "minimum": 1
       }
     },
     {
@@ -118,22 +139,22 @@
         "feature": "bmi"
       },
       {
-        "id": "nutrition",
-        "label": "Nutrition",
-        "href": "/calories",
+        "id": "trends",
+        "label": "Trends",
+        "href": "/health/trends",
+        "requiresRoute": "/health/trends"
+      },
+      {
+        "id": "foods",
+        "label": "Food library",
+        "href": "/calories/foods",
         "feature": "calories"
       },
       {
         "id": "activities",
         "label": "Activity",
         "href": "/activities",
-        "feature": "activities"
-      },
-      {
-        "id": "foods",
-        "label": "Food library",
-        "href": "/calories/foods",
-        "feature": "calories",
+        "feature": "activities",
         "secondary": true
       }
     ]

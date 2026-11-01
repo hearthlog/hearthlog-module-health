@@ -1,51 +1,17 @@
 <script lang="ts">
-    import QuickWeighIn from "../components/health/QuickWeighIn.svelte";
-    /** The phone pill opens the one-number weigh-in over the page. */
-    let quickWeighOpen = $state(false);
-    import { PhoneGlance } from "@hearthlog/sdk/ui";
-    const drawerId = $props.id();
-    const drawerFormId0 = drawerId + "-0";
-
-    import { untrack } from "svelte";
-    import { goto } from "$app/navigation";
-    import { page } from "$app/state";
-    import { parseSelectedDate, toLocalDateString } from "../calories/logic.js";
-    import { runCommandAction as runWorkspaceCommandAction } from "@hearthlog/sdk/runtime";
-    import { DataValue } from "@hearthlog/sdk/ui";
-    import { providePageResource } from "@hearthlog/sdk/runtime";
-    import { PageDataStatus } from "@hearthlog/sdk/ui";
-    import { DataPlaceholder } from "@hearthlog/sdk/ui";
-    import { EmptyState } from "@hearthlog/sdk/ui";
-    import { bmiStore } from "../store/bmi-store.svelte.js";
-    import {
-        type AddWeightlogEvent,
-        type RemoveWeightlogEvent,
-    } from "@hearthlog/sdk/data";
     import { executeLocalCommand } from "@hearthlog/sdk/data";
-    import { refreshPageData as invalidate } from "@hearthlog/sdk/runtime";
-    import { appClock } from "@hearthlog/sdk/runtime";
+    import type { AddWeightlogEvent, RemoveWeightlogEvent } from "@hearthlog/sdk/data";
+    import { appClock, contextualHref, notify, providePageResource, refreshPageData, tenant } from "@hearthlog/sdk/runtime";
+    import { CommandDrawer, DataPlaceholder, MobilePageAction, PageDataStatus } from "@hearthlog/sdk/ui";
+    import { formatFixed, formatNumber } from "@hearthlog/sdk/format";
     import HealthPageHeader from "../components/health/HealthPageHeader.svelte";
-    import HealthHead from "../components/health/HealthHead.svelte";
     import WeightChart from "../components/health/WeightChart.svelte";
     import WeighInsTable from "../components/health/WeighInsTable.svelte";
-    import { DatePicker } from "@hearthlog/sdk/ui";
-    import { notify } from "@hearthlog/sdk/runtime";
-    import { CommandConfirmDialog } from "@hearthlog/sdk/ui";
-    import { CommandDrawer } from "@hearthlog/sdk/ui";
-    import { CommandOnly } from "@hearthlog/sdk/ui";
-    import { Button } from "@hearthlog/sdk/ui";
-    import { MobilePageAction } from "@hearthlog/sdk/ui";
-    import IconPlus from "~icons/mdi/plus";
-    import { formatFixed } from "@hearthlog/sdk/format";
-    import { tenant } from "@hearthlog/sdk/runtime";
-    import { bmiSummary, weightChangeLabel } from "../health/day.js";
-    import {
-        WEIGHT_RANGES,
-        weighedLabel,
-        weightPaceLabel,
-        type WeightPageData,
-        type WeightRange,
-    } from "../health/weight.js";
+    import WeighIn from "../components/body/WeighIn.svelte";
+    import { shiftLocalDate, toLocalDateString } from "../calories/logic.js";
+    import { arrivalDate } from "../health/budget.js";
+    import { daysBetween, dayTitle, shortDate } from "../health/format.js";
+    import type { WeightPageData } from "../health/weight.js";
     import type { WeighInRow } from "../data/weight-logs.js";
 
     let { data: routeData } = $props();
@@ -53,445 +19,264 @@
     const data = $derived(resource.data as WeightPageData);
     providePageResource(() => resource);
 
-    const historyDateFormatter = new Intl.DateTimeFormat("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-    });
-
-    let newWeightDate = $state("");
-    let newWeightValue = $state<number | null>(null);
-    let newHeightValue = $state<number | null>(null);
-
-    let savingEntry = $state(false);
-    let removingEntryId = $state<string | null>(null);
-    let logDrawerOpen = $state(false);
-    let deleteEntry = $state<WeighInRow | null>(null);
-
     const today = $derived(toLocalDateString(appClock.now()));
     const latest = $derived(data.latest);
-    // Phones open on 30 days, so a month of weigh-ins fills the narrow chart.
-    let range = $state<WeightRange>(typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches ? 30 : 90);
-    const trend = $derived(data.trends[range]);
-    const rangePhrase = $derived(WEIGHT_RANGES.find((option) => option.value === range)?.phrase ?? "");
     const latestDate = $derived(latest ? String(latest.date).slice(0, 10) : "");
-    const chips = $derived([
-        weightChangeLabel(data.delta),
-        weightPaceLabel(data.pace),
-        latest ? bmiSummary(latest.weight, latest.height) : "",
-    ].filter(Boolean));
-    const chartLabel = $derived(
-        trend.mean.length > 1
-            ? `Weight over ${rangePhrase}, from ${formatFixed(trend.mean[0].mean, 1)} to ${formatFixed(trend.mean[trend.mean.length - 1].mean, 1)} kilograms`
-            : `Weight over ${rangePhrase}`,
-    );
+    const height = $derived(latest ? Number(latest.height) : 0);
+    const bmi = $derived(latest && height > 0 ? Number(latest.weight) / (height / 100) ** 2 : null);
+    const range = $derived(height > 0 ? { min: 18.5 * (height / 100) ** 2, max: 24.9 * (height / 100) ** 2 } : null);
+    const goal = $derived(data.goal);
+    const trendNow = $derived(data.trendNow);
+    // The trend pauses after a week without a weigh-in instead of guessing.
+    const stale = $derived(latestDate !== "" && daysBetween(latestDate, today) > 7);
+    const arrival = $derived(goal && trendNow !== null && data.pace !== null && !stale ? arrivalDate(latestDate, trendNow, goal.targetKg, data.pace) : null);
 
-    let canSaveWeight = $derived(
-        newWeightValue !== null &&
-            Number.isFinite(newWeightValue) &&
-            newWeightValue > 0 &&
-            newHeightValue !== null &&
-            Number.isFinite(newHeightValue) &&
-            newHeightValue > 0 &&
-            !savingEntry,
-    );
-
-    $effect(() => {
-        if (resource.loading) return;
-        const row = data.latest;
-        bmiStore.setDatabaseView(
-            row ? [{ id: row.id, weight: row.weight, height: row.height, date: row.date, notes: row.notes }] : [],
-        );
-        if (!untrack(() => newWeightDate)) newWeightDate = data.defaultDate;
-
-        return () => {
-            bmiStore.clearDatabaseView();
-        };
+    type Span = 90 | 365 | "all";
+    let span = $state<Span>(90);
+    const trend = $derived(data.trends[span === 90 ? 90 : span === 365 ? 365 : "all"]);
+    // With a goal the axis runs on to where the trend meets it, or the planned date, up to a year ahead.
+    const axisEnd = $derived.by(() => {
+        if (!latestDate) return today;
+        const ends = [latestDate, goal?.targetDate ?? "", arrival ?? ""].filter((date) => date && date <= shiftLocalDate(latestDate, 365));
+        return ends.sort().at(-1) ?? latestDate;
     });
 
-    function formatHistoryDate(date: string): string {
-        const parsed = new Date(`${date}T12:00:00`);
-        return Number.isNaN(parsed.getTime())
-            ? date
-            : historyDateFormatter.format(parsed);
-    }
+    let mobileWeighOpen = $state(false);
+    let removing = $state<string | null>(null);
 
-    function prefillLogWeight() {
-        newWeightValue = bmiStore.weight;
-        newHeightValue = bmiStore.height;
-    }
-
-    function openLogDrawer(date?: string) {
-        prefillLogWeight();
-        // A saved entry must not seed the next one's date: start at today unless a day was asked for.
-        newWeightDate = date ?? data.defaultDate;
-        logDrawerOpen = true;
-    }
-
-    /** Closing the drawer also drops the one-shot `?newWeighIn=1&date=…` that opened it. */
-    function closeLogDrawer() {
-        logDrawerOpen = false;
-        if (!page.url.searchParams.has("newWeighIn")) return;
-        const next = new URL(page.url.href);
-        next.searchParams.delete("newWeighIn");
-        next.searchParams.delete("date");
-        void goto(`${next.pathname}${next.search}${next.hash}`, { replace: true, reset: false });
-    }
-
-    let handledNewWeighIn = $state("");
-    $effect(() => {
-        if (resource.loading) return;
-        const requestKey = page.url.searchParams.has("newWeighIn") ? `${page.url.pathname}${page.url.search}` : "";
-        if (!requestKey) {
-            handledNewWeighIn = "";
-            return;
-        }
-        if (requestKey === handledNewWeighIn) return;
-        const requestedDate = page.url.searchParams.get("date");
-        const date = requestedDate ? parseSelectedDate(requestedDate, data.defaultDate) : undefined;
-        if (runWorkspaceCommandAction(() => openLogDrawer(date))) handledNewWeighIn = requestKey;
-    });
-
-    async function logWeight() {
-        const weight = newWeightValue;
-        const height = newHeightValue;
-        if (
-            weight === null ||
-            !Number.isFinite(weight) ||
-            weight <= 0 ||
-            height === null ||
-            !Number.isFinite(height) ||
-            height <= 0 ||
-            savingEntry
-        ) return;
-
-        savingEntry = true;
-
-        const entryId = crypto.randomUUID();
-        const event: AddWeightlogEvent = {
-            id: crypto.randomUUID(),
-            type: "WEIGHTLOG_ADDED",
-            timestamp: Date.now(),
-            payload: {
-                id: entryId,
-                weight,
-                height,
-                date: newWeightDate,
-                notes: "",
-            },
-        };
-
+    async function remove(row: WeighInRow): Promise<void> {
+        if (removing) return;
+        removing = row.id;
+        const event: RemoveWeightlogEvent = { id: crypto.randomUUID(), type: "WEIGHTLOG_REMOVED", timestamp: Date.now(), payload: { id: row.id } };
         try {
             await executeLocalCommand(event);
-
-            bmiStore.setHeight(height);
-
-            await invalidate("app:weight-logs");
-
-            newWeightValue = null;
-            newHeightValue = null;
-            closeLogDrawer();
-            notify.success("Weight entry saved");
+            await refreshPageData("app:weight-logs");
+            notify.success(`Removed ${formatFixed(row.weight, 1)} kg from ${shortDate(row.date, today)}`, {
+                label: "Undo",
+                run: async () => {
+                    const add: AddWeightlogEvent = { id: crypto.randomUUID(), type: "WEIGHTLOG_ADDED", timestamp: Date.now(), payload: { id: crypto.randomUUID(), weight: row.weight, height: row.height, date: row.date, notes: "" } };
+                    try {
+                        await executeLocalCommand(add);
+                        await refreshPageData("app:weight-logs");
+                    } catch {
+                        notify.error("Could not undo");
+                    }
+                },
+            });
         } catch (error) {
-            console.error("Failed to log weight:", error);
-            notify.error("Could not save the weight entry");
+            console.error("Failed to remove weigh-in:", error);
+            notify.error("Could not remove the weigh-in");
         } finally {
-            savingEntry = false;
+            removing = null;
         }
     }
 
-    async function removeEntry(id: string) {
-        if (removingEntryId) return;
-        removingEntryId = id;
-        const event: RemoveWeightlogEvent = {
-            id: crypto.randomUUID(),
-            type: "WEIGHTLOG_REMOVED",
-            timestamp: Date.now(),
-            payload: { id },
-        };
-
-        try {
-            await executeLocalCommand(event);
-            await invalidate("app:weight-logs");
-            notify.success("Weight entry removed");
-        } catch (error) {
-            console.error("Failed to remove weight entry:", error);
-            notify.error("Could not remove the weight entry");
-        } finally {
-            removingEntryId = null;
-        }
-    }
-
-    async function confirmRemoveEntry() {
-        if (!deleteEntry) return;
-        const id = deleteEntry.id;
-        deleteEntry = null;
-        await removeEntry(id);
-    }
+    const bmiBands = [
+        { label: "Under", to: 18.5 },
+        { label: "Healthy", to: 25 },
+        { label: "Over", to: 30 },
+        { label: "Obese", to: 40 },
+    ];
+    const bmiAt = (value: number) => Math.min(100, Math.max(0, ((value - 15) / (40 - 15)) * 100));
 </script>
 
-<svelte:head>
-    <title>Body | Health | {tenant.title}</title>
-</svelte:head>
+<svelte:head><title>Body | {tenant.title}</title></svelte:head>
 
 <PageDataStatus {resource} />
 
+<!-- Stable read-only hooks keep saved measurements observable to tests and assistive tooling. -->
+<input id="height" type="hidden" value={height || ""} />
+<input id="weight" type="hidden" value={latest ? Number(latest.weight) : ""} />
+
 <div class="stor-refined w-full overflow-x-hidden">
     <HealthPageHeader active="body" />
-
     <div class="stor-page p-2.5 sm:p-3">
-        <!-- Phones: the top bar names the page and carries the latest weight. -->
-        <div class="max-md:hidden"><HealthHead title="Body">
-            {#snippet action()}
-                <CommandOnly>
-                    <Button onclick={() => openLogDrawer()} aria-label="Add weigh-in" disabled={savingEntry}>
-                        <IconPlus class="h-4 w-4" />
-                        Add weigh-in
-                    </Button>
-                </CommandOnly>
-            {/snippet}
-        </HealthHead></div>
+        <div class="body">
+            <header class="bh">
+                <div class="ttl">
+                    <p class="over">{dayTitle(today, today)}{latestDate === today ? " · weighed" : ""}</p>
+                    <h1>Body</h1>
+                </div>
+                {#if tenant.features.has("calories")}<a class="btn" href={contextualHref("/bmi/goal")}>Goal and pace</a>{/if}
+            </header>
 
-        {#if !resource.loading && !latest}
-            <EmptyState title="No weight history yet" description="Log your first weight to start a private trend.">
-                <CommandOnly>
-                    <Button size="sm" onclick={() => openLogDrawer()}>Log first weight</Button>
-                </CommandOnly>
-            </EmptyState>
-        {:else}
-            <div class="layout">
-                <section class="stor-panel hero stor-tone-body" aria-label="Weight">
-                    <p class="lab md:hidden" style:grid-area="lab"><i></i>Weight</p>
-                    <div class="top max-md:hidden">
-                        <p class="lab"><i></i>Weight</p>
-                        <p class="big">
-                            <DataValue>{latest ? formatFixed(latest.weight, 1) : ""}</DataValue>
-                            <small><DataValue>{latest ? `kg · ${weighedLabel(latestDate, today)}` : ""}</DataValue></small>
-                        </p>
-                    </div>
-                    <!-- Phones pick the range from a small chip on the chart. -->
-                    <label class="range-chip md:hidden">
-                        <span class="sr-only">Weight range</span>
-                        <select bind:value={range} class="range-select">
-                            {#each WEIGHT_RANGES as option (option.value)}<option value={option.value}>{option.label}</option>{/each}
-                        </select>
-                    </label>
-                    <div class="stor-segmented-control range inline-grid grid-cols-4 max-md:!hidden" aria-label="Weight range">
-                        {#each WEIGHT_RANGES as option (option.value)}
-                            <button type="button" aria-pressed={range === option.value} onclick={() => range = option.value} class="stor-segmented-option">{option.label}</button>
-                        {/each}
-                    </div>
-                    {#if !resource.loading && chips.length > 0}
-                        <div class="chips max-md:!hidden">
-                            {#each chips as chip (chip)}<span class="chip">{chip}</span>{/each}
+            {#if resource.loading}
+                <DataPlaceholder rows={8} label="Loading weight" />
+            {:else}
+                <div class="top">
+                    <section class="stor-panel weigh max-md:hidden" aria-labelledby="weigh-title">
+                        <h2 id="weigh-title" class="h">{latestDate === today ? "Weigh again" : "This morning"}</h2>
+                        <WeighIn date={today} />
+                    </section>
+
+                    <section class="stor-panel readout" aria-label="Weight at a glance">
+                        <div class="cell lead">
+                            <span class="k">Trend</span>
+                            <span class="v">{trendNow !== null ? formatFixed(trendNow, 1) : "—"}<small>kg</small></span>
+                            <span class="s">{stale ? `Paused · last weigh-in ${daysBetween(latestDate, today)} days ago` : "Seven-day average"}</span>
                         </div>
-                    {/if}
-                    <div class="plot">
-                        {#if resource.loading}
-                            <DataPlaceholder rows={5} />
-                        {:else}
-                            <WeightChart
-                                weighIns={trend.weighIns}
-                                mean={trend.mean}
-                                from={trend.from}
-                                to={latestDate}
-                                band={bmiStore.idealWeightRange}
-                                label={chartLabel}
-                            />
+                        <div class="cell">
+                            <span class="k">{latestDate === today ? "Today" : "Latest"}</span>
+                            <span class="v">{latest ? formatFixed(Number(latest.weight), 1) : "—"}<small>kg</small></span>
+                            <span class="s">{latestDate ? shortDate(latestDate, today) : "No weigh-ins yet"}</span>
+                        </div>
+                        <div class="cell">
+                            <span class="k">Pace</span>
+                            <span class="v">{data.pace !== null ? formatFixed(data.pace, 2, { signed: true }) : "—"}<small>kg/wk</small></span>
+                            <span class="s">{goal?.plannedPace != null ? `plan ${formatFixed(goal.plannedPace, 2, { signed: true })}` : "last 30 days"}</span>
+                        </div>
+                        {#if goal}
+                            <div class="cell">
+                                <span class="k">To goal</span>
+                                <span class="v">{trendNow !== null ? formatFixed(Math.abs(trendNow - goal.targetKg), 1) : "—"}<small>kg</small></span>
+                                <span class="s">goal {formatFixed(goal.targetKg, 1)} kg</span>
+                            </div>
+                            <div class="cell">
+                                <span class="k">Arrival</span>
+                                <span class="v sm">{arrival ? `~${shortDate(arrival, arrival)}` : "—"}</span>
+                                <span class="s">{goal.targetDate ? `planned ${shortDate(goal.targetDate, goal.targetDate)}` : arrival ? "at your actual pace" : "needs a steady pace"}</span>
+                            </div>
+                        {/if}
+                        <div class="cell">
+                            <span class="k">BMI</span>
+                            <span class="v">{bmi !== null ? formatFixed(bmi, 1) : "—"}</span>
+                            <span class="s">{height ? `${formatNumber(height)} cm` : ""}</span>
+                        </div>
+                    </section>
+                </div>
+
+                {#if trend.weighIns.length > 0}
+                    <section class="stor-panel chart" aria-labelledby="chart-title">
+                        <header class="ch">
+                            <h2 id="chart-title" class="h">{goal ? "Weight and goal" : "Weight"}</h2>
+                            <p class="legend" aria-hidden="true">
+                                <span><i class="dot"></i>Weigh-in</span><span><i class="ln"></i>Trend</span>
+                                {#if goal}<span><i class="dl"></i>Plan</span><span><i class="pj"></i>At your pace</span>{/if}
+                            </p>
+                            <div class="seg" role="radiogroup" aria-label="Range">
+                                {#each [[90, "3 months"], [365, "Year"], ["all", "All"]] as [value, label] (value)}
+                                    <button type="button" role="radio" aria-checked={span === value} class:on={span === value} onclick={() => (span = value as Span)}>{label}</button>
+                                {/each}
+                            </div>
+                        </header>
+                        <WeightChart
+                            weighIns={trend.weighIns}
+                            mean={trend.mean}
+                            from={trend.from}
+                            to={axisEnd}
+                            band={goal ? null : range}
+                            goal={goal?.targetKg ?? null}
+                            plan={goal && goal.targetDate ? { from: goal.startDate, fromKg: goal.startKg, to: goal.targetDate, toKg: goal.targetKg } : null}
+                            projection={arrival && trendNow !== null && goal ? { from: latestDate, fromKg: trendNow, to: arrival, toKg: goal.targetKg } : null}
+                            today={axisEnd > today ? today : null}
+                            label="Weight from {shortDate(trend.from, today)}{goal ? `, with the goal of ${formatFixed(goal.targetKg, 1)} kilograms` : ''}"
+                        />
+                    </section>
+                {/if}
+
+                <div class="bottom">
+                    <section class="stor-panel list" aria-labelledby="weighins-title">
+                        <header class="ch"><h2 id="weighins-title" class="h">Weigh-ins</h2>{#if data.total > 0}<span class="mt">{formatNumber(data.total)}</span>{/if}</header>
+                        <WeighInsTable total={data.total} {today} revision={resource.revision} busyId={removing} onDelete={(row) => void remove(row)} />
+                    </section>
+                    <div class="side">
+                        {#if bmi !== null && range}
+                            <section class="stor-panel card" aria-labelledby="bmi-title">
+                                <h2 id="bmi-title" class="h">BMI {formatFixed(bmi, 1)}</h2>
+                                <div class="scale" aria-hidden="true">
+                                    {#each bmiBands as band, index (band.label)}
+                                        {@const from = index === 0 ? 15 : bmiBands[index - 1].to}
+                                        <span class:healthy={band.label === "Healthy"} style:flex="{band.to - from} 0 0">{band.label}</span>
+                                    {/each}
+                                    <i style:left="{bmiAt(bmi)}%"></i>
+                                </div>
+                                <p class="s">Healthy range at {formatNumber(height)} cm is {formatFixed(range.min, 1)}–{formatFixed(range.max, 1)} kg.</p>
+                                <p class="s">BMI is a screening estimate, not a diagnosis.</p>
+                            </section>
+                        {/if}
+                        {#if goal}
+                            {@const done = trendNow !== null ? Math.max(0, Math.min(Math.abs(goal.startKg - goal.targetKg), Math.abs(goal.startKg - trendNow))) : 0}
+                            {@const total = Math.abs(goal.startKg - goal.targetKg)}
+                            <a class="stor-panel card link" href={contextualHref("/bmi/goal")}>
+                                <h2 class="h">Goal {formatFixed(goal.targetKg, 1)} kg</h2>
+                                <span class="prog"><i style:width="{total > 0 ? (done / total) * 100 : 0}%"></i></span>
+                                <p class="s">From {formatFixed(goal.startKg, 1)} kg on {shortDate(goal.startDate, today)}: {formatFixed(done, 1)} of {formatFixed(total, 1)} kg</p>
+                                <p class="s">Budget {formatNumber(goal.calories)} kcal + steps{#if goal.proteinG > 0} · protein {formatNumber(goal.proteinG)} g{/if}</p>
+                            </a>
+                        {:else if tenant.features.has("calories")}
+                            <a class="stor-panel card link" href={contextualHref("/bmi/goal")}>
+                                <h2 class="h">No goal yet</h2>
+                                <p class="s">Pick a goal weight and a pace; Health works out the daily budget and when you get there.</p>
+                            </a>
                         {/if}
                     </div>
-                </section>
-
-                <section class="stor-panel measure max-md:hidden" aria-labelledby="body-measurements-title">
-                    <header class="stor-panel-header">
-                        <h2 id="body-measurements-title" class="font-semibold text-[var(--stor-ink)]">Measurements</h2>
-                        <CommandOnly>
-                            <Button class="-mr-2" variant="ghost" size="sm" onclick={() => openLogDrawer()}>Edit</Button>
-                        </CommandOnly>
-                    </header>
-                    <div class="px-[var(--stor-panel-padding)] pb-[var(--stor-panel-padding)]">
-                        <!-- Stable read-only hooks keep saved measurements observable to tests and assistive tooling. -->
-                        <input id="height" type="hidden" value={bmiStore.height ?? ""} />
-                        <input id="weight" type="hidden" value={bmiStore.weight ?? ""} />
-
-                        {@render bodyFacts()}
-                    </div>
-                </section>
-
-                <section class="stor-panel weighins min-w-0" aria-labelledby="body-weighins-title">
-                    <header class="stor-panel-header">
-                        <h2 id="body-weighins-title" class="font-semibold text-[var(--stor-ink)]">Weigh-ins</h2>
-                        {#if !resource.loading && data.total > 0}<span class="text-xs text-[var(--stor-muted-text)]">{data.total} {data.total === 1 ? "entry" : "entries"}</span>{/if}
-                    </header>
-                    {#if resource.loading}
-                        <div class="px-[var(--stor-panel-padding)] pb-[var(--stor-panel-padding)]"><DataPlaceholder rows={5} compact /></div>
-                    {:else}
-                        <div class="px-[calc(var(--stor-panel-padding)-0.75rem)]">
-                            <WeighInsTable
-                                total={data.total}
-                                {today}
-                                revision={resource.revision}
-                                busyId={removingEntryId}
-                                onDelete={(row) => (deleteEntry = row)}
-                            />
-                        </div>
-                    {/if}
-                </section>
-            </div>
-        {/if}
+                </div>
+            {/if}
+        </div>
     </div>
 </div>
 
-{#snippet bodyFacts()}
-                        <dl class="facts">
-                            <div><dt>Height</dt><dd><DataValue>{bmiStore.height !== null ? formatFixed(bmiStore.height, 0) : "—"}</DataValue>{#if bmiStore.height !== null}<small>&nbsp;cm</small>{/if}</dd></div>
-                            <div><dt>BMI</dt><dd><DataValue>{bmiStore.bmi !== null ? formatFixed(bmiStore.bmi, 1) : "—"}</DataValue></dd></div>
-                            <div>
-                                <dt>Reference range</dt>
-                                <dd>
-                                    <DataValue>{bmiStore.idealWeightRange ? `${formatFixed(bmiStore.idealWeightRange.min, 1)}–${formatFixed(bmiStore.idealWeightRange.max, 1)}` : "—"}</DataValue>{#if bmiStore.idealWeightRange}<small>&nbsp;kg</small>{/if}
-                                </dd>
-                            </div>
-                        </dl>
-                        <p class="note">BMI is a screening estimate, not a diagnosis.</p>
-{/snippet}
-
-{#if latest}
-    <PhoneGlance label="Weight" value={formatFixed(latest.weight, 1)} unit="kg" title="Body">
-        <div class="stor-tone-body flex flex-col gap-3">
-            <p class="big"><DataValue>{formatFixed(latest.weight, 1)}</DataValue><small>kg · {weighedLabel(latestDate, today)}</small></p>
-            {#if chips.length > 0}<div class="chips">{#each chips as chip (chip)}<span class="chip">{chip}</span>{/each}</div>{/if}
-            {@render bodyFacts()}
-        </div>
-    </PhoneGlance>
-{/if}
-
-<QuickWeighIn show={quickWeighOpen} date={today} {today} onClose={() => (quickWeighOpen = false)} />
-
-<MobilePageAction hideWhenModalOpen isModalOpen={logDrawerOpen || quickWeighOpen}>
-    <Button class="h-12 w-full text-[15px]" onclick={() => (quickWeighOpen = true)} aria-label="Add weigh-in" disabled={savingEntry}>
-        <IconPlus class="h-5 w-5" /> <span class="stor-action-label">{savingEntry ? "Saving…" : "Add weigh-in"}</span>
-    </Button>
-</MobilePageAction>
-<CommandDrawer
-    show={logDrawerOpen}
-    title="Add weigh-in"
-    description="Save a dated weight entry for your history and trend chart."
-    onClose={closeLogDrawer}
->
-    <form id={drawerFormId0}
-        class="space-y-4"
-        onsubmit={(event) => {
-            event.preventDefault();
-            void logWeight();
-        }}
-    >
-        <label class="block text-sm font-semibold text-[var(--stor-ink)]">
-            Date
-            <DatePicker
-                bind:value={newWeightDate}
-                class="mt-1.5 text-sm"
-                placeholder="Choose weigh-in date"
-            />
-        </label>
-
-        <label class="block text-sm font-semibold text-[var(--stor-ink)]">
-            Height
-            <div class="relative mt-1.5">
-                <input
-                    id="log-height"
-                    type="number"
-                    min="0"
-                    step="1"
-                    class="h-11 w-full rounded-xl border border-[var(--stor-field-border)] bg-[var(--stor-surface-muted)] px-3 pr-12 text-base text-[var(--stor-ink)] outline-none transition focus:border-[var(--stor-focus)] focus:ring-2 focus:ring-[var(--stor-selected)] sm:h-9 sm:text-sm"
-                    bind:value={newHeightValue}
-                    placeholder="Height to save"
-                />
-                <span class="pointer-events-none absolute inset-y-0 right-4 flex items-center text-sm text-[var(--stor-muted-text)]">cm</span>
-            </div>
-        </label>
-
-        <label class="block text-sm font-semibold text-[var(--stor-ink)]">
-            Weight
-            <div class="relative mt-1.5">
-                <input
-                    type="number"
-                    min="0"
-                    step="0.1"
-                    class="h-11 w-full rounded-xl border border-[var(--stor-field-border)] bg-[var(--stor-surface-muted)] px-3 pr-12 text-base text-[var(--stor-ink)] outline-none transition focus:border-[var(--stor-focus)] focus:ring-2 focus:ring-[var(--stor-selected)] sm:h-9 sm:text-sm"
-                    bind:value={newWeightValue}
-                    placeholder="Weight to save"
-                />
-                <span class="pointer-events-none absolute inset-y-0 right-4 flex items-center text-sm text-[var(--stor-muted-text)]">kg</span>
-            </div>
-        </label>
-
-        </form>
-    {#snippet footer()}
-            <Button variant="secondary" size="sm" onclick={closeLogDrawer} disabled={savingEntry}>
-                Cancel
-            </Button>
-            <Button type="submit" form={drawerFormId0} disabled={!canSaveWeight}>
-                {savingEntry ? "Saving..." : "Save entry"}
-            </Button>
-
-    {/snippet}
+<CommandDrawer show={mobileWeighOpen} title="Weigh in" onClose={() => (mobileWeighOpen = false)}>
+    {#if mobileWeighOpen}<WeighIn date={today} onSaved={() => (mobileWeighOpen = false)} />{/if}
 </CommandDrawer>
 
-<CommandConfirmDialog
-    show={!!deleteEntry}
-    title="Delete weigh-in?"
-    message={deleteEntry
-        ? `Delete the ${formatHistoryDate(deleteEntry.date)} entry at ${formatFixed(deleteEntry.weight, 1)} kg?`
-        : "Delete this weight entry?"}
-    onConfirm={confirmRemoveEntry}
-    onCancel={() => (deleteEntry = null)}
-/>
+<MobilePageAction hideWhenModalOpen isModalOpen={mobileWeighOpen}>
+    <button type="button" class="mob" onclick={() => (mobileWeighOpen = true)} aria-label="Add weigh-in">Weigh in</button>
+</MobilePageAction>
 
 <style>
-    /* One column on phones, in reading order; the measurements sit beside the chart from lg. */
-    .layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--stor-section-gap); grid-template-areas: "hero" "measure" "weighins"; }
-    @media (min-width: 1024px) {
-        .layout { grid-template-columns: minmax(0, 2.2fr) minmax(0, .9fr); grid-template-areas: "hero measure" "weighins ."; align-items: start; }
-    }
-    .hero { grid-area: hero; display: grid; gap: 14px; padding: 18px 18px 12px; grid-template-columns: minmax(0, 1fr); grid-template-areas: "top" "chips" "range" "plot"; }
-    @media (min-width: 640px) {
-        .hero { padding: 22px 24px 14px; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "top range" "chips chips" "plot plot"; }
-    }
-    .top { grid-area: top; }
-    .range { grid-area: range; align-self: end; justify-self: start; }
-    .chips { grid-area: chips; display: flex; flex-wrap: wrap; gap: 8px; }
-    .plot { grid-area: plot; margin: 0 -8px 0 -4px; min-width: 0; }
-    @media (min-width: 640px) { .range { justify-self: end; } }
-    .lab { display: flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 600; letter-spacing: .02em; color: var(--stor-muted-text); }
-    .lab i { display: block; width: 8px; height: 8px; border-radius: 50%; background: var(--tone); }
-    .big { margin-top: 6px; font-size: 34px; font-weight: 650; line-height: 1.05; letter-spacing: -.035em; color: var(--stor-ink); font-variant-numeric: tabular-nums; }
-    @media (min-width: 640px) { .big { font-size: 40px; } }
-    .big small { margin-left: 10px; font-size: 14px; font-weight: 500; letter-spacing: 0; color: var(--stor-muted-text); }
-    .chip {
-        display: inline-flex; height: 26px; align-items: center; padding: 0 10px; border-radius: 999px; white-space: nowrap;
-        font-size: 12px; font-weight: 600; color: var(--stor-ink); background: var(--stor-surface-muted);
-        box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--stor-border) 60%, transparent);
-    }
-    .measure { grid-area: measure; }
-    .weighins { grid-area: weighins; }
-    .facts { margin: 0; }
-    .facts > div { padding: 10px 0; }
-    .facts > div + div { border-top: 1px solid color-mix(in srgb, var(--stor-border) 60%, transparent); }
-    .facts dt { font-size: 12px; font-weight: 500; color: var(--stor-muted-text); }
-    .facts dd { margin: 2px 0 0; font-size: 18px; font-weight: 650; letter-spacing: -.015em; color: var(--stor-ink); font-variant-numeric: tabular-nums; }
-    .facts dd small { font-size: 11.5px; font-weight: 500; letter-spacing: 0; color: var(--stor-muted-text); }
-    .note { margin-top: 8px; font-size: 12px; color: var(--stor-muted-text); }
-    .range-chip { grid-area: range; justify-self: end; }
-    .range-select {
-        height: 34px; padding: 0 28px 0 12px; border-radius: 999px; font-size: 13px; font-weight: 600; color: var(--stor-ink);
-        background: var(--stor-surface-muted) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%235b6b7b' d='M7.41 8.58 12 13.17l4.59-4.59L18 10l-6 6-6-6z'/%3E%3C/svg%3E") no-repeat right 8px center / 16px;
-        box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--stor-border) 60%, transparent); appearance: none; -webkit-appearance: none; border: 0;
-    }
-    /* Phones: the chart first with its range chip beside the label, then the weigh-ins as a plain list. */
+    .body { display: flex; flex-direction: column; gap: var(--stor-section-gap); padding-bottom: 24px; }
+    .bh { display: flex; align-items: flex-end; gap: 16px; }
+    .ttl { display: flex; min-width: 0; flex: 1; flex-direction: column; gap: 2px; }
+    .over { font-size: 12px; font-weight: 600; letter-spacing: .02em; color: var(--stor-muted-text); }
+    h1 { font-family: var(--stor-font-serif); font-size: 30px; font-weight: 500; line-height: 1.15; color: var(--stor-ink); }
+    .h { font-size: 15px; font-weight: 650; color: var(--stor-ink); }
+    .btn { display: inline-flex; height: 40px; align-items: center; padding: 0 14px; border-radius: 12px; font-size: 14px; font-weight: 600; color: var(--stor-ink); background: var(--stor-surface); box-shadow: inset 0 0 0 1px var(--stor-border); text-decoration: none; }
+    .btn:hover { background: var(--stor-surface-hover); }
+    .top { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: var(--stor-section-gap); }
+    .weigh { display: flex; flex-direction: column; gap: 12px; padding: 18px 20px; }
+    .readout { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); align-content: center; padding: 18px 8px; }
+    .cell { display: flex; min-width: 0; flex-direction: column; gap: 4px; padding: 4px 16px; }
+    .cell + .cell { border-left: 1px solid color-mix(in srgb, var(--stor-border) 60%, transparent); }
+    .k { font-size: 12px; font-weight: 600; color: var(--stor-muted-text); }
+    .v { font-size: 26px; font-weight: 650; line-height: 1.1; letter-spacing: -.02em; color: var(--stor-ink); font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .lead .v { font-size: 40px; color: var(--stor-ink); }
+    .v.sm { font-size: 22px; }
+    .v small { margin-left: 4px; font-size: 12.5px; font-weight: 500; letter-spacing: 0; color: var(--stor-muted-text); }
+    .s { font-size: 12.5px; line-height: 1.45; color: var(--stor-muted-text); }
+    .chart { display: flex; flex-direction: column; gap: 10px; padding: 18px 20px 12px; }
+    .ch { display: flex; align-items: center; gap: 16px; }
+    .legend { display: flex; flex-wrap: wrap; gap: 14px; margin-right: auto; font-size: 12px; color: var(--stor-muted-text); }
+    .legend span { display: inline-flex; align-items: center; gap: 6px; }
+    .legend .dot { width: 8px; height: 8px; border-radius: 50%; box-shadow: inset 0 0 0 1.4px var(--stor-health-body); }
+    .legend .ln { width: 16px; height: 2.4px; border-radius: 2px; background: var(--stor-health-body); }
+    .legend .dl { width: 16px; border-top: 1.6px dotted var(--stor-muted-text); }
+    .legend .pj { width: 16px; border-top: 2px dashed var(--stor-health-body); }
+    .seg { display: flex; gap: 2px; padding: 3px; border-radius: 10px; background: var(--stor-surface-muted); }
+    .seg button { height: 28px; padding: 0 10px; border-radius: 8px; font-size: 12.5px; font-weight: 600; color: var(--stor-muted-text); }
+    .seg button.on { background: var(--stor-surface); color: var(--stor-ink); box-shadow: var(--stor-elevation-1); }
+    .bottom { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: var(--stor-section-gap); align-items: start; }
+    .list { padding: 14px 8px 8px; }
+    .list .ch { padding: 0 12px 6px; justify-content: space-between; }
+    .mt { font-size: 12px; color: var(--stor-muted-text); }
+    .side { display: flex; flex-direction: column; gap: var(--stor-section-gap); }
+    .card { display: flex; flex-direction: column; gap: 8px; padding: 18px 20px; color: inherit; text-decoration: none; }
+    .link:hover { box-shadow: var(--stor-elevation-2); }
+    .scale { position: relative; display: flex; gap: 2px; margin: 6px 0 4px; }
+    .scale span { display: block; padding-top: 12px; border-top: 6px solid var(--stor-surface-muted); font-size: 11px; color: var(--stor-muted-text); }
+    .scale span.healthy { border-top-color: color-mix(in srgb, var(--stor-positive) 45%, var(--stor-surface-muted)); color: var(--stor-ink); }
+    .scale i { position: absolute; top: -4px; width: 3px; height: 14px; margin-left: -1.5px; border-radius: 2px; background: var(--stor-ink); }
+    .prog { display: block; height: 6px; border-radius: 3px; background: var(--stor-surface-muted); overflow: hidden; }
+    .prog i { display: block; height: 100%; border-radius: inherit; background: var(--stor-health-body); }
+    .mob { display: inline-flex; width: 100%; height: 48px; align-items: center; justify-content: center; border-radius: 14px; font-size: 15px; font-weight: 600; color: var(--stor-action-text, #fff); background: var(--stor-action); }
+    @media (max-width: 1100px) { .top, .bottom { grid-template-columns: minmax(0, 1fr); } }
     @media (max-width: 767px) {
-        .hero { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "lab range" "plot plot"; padding: 14px 16px 10px; }
-        .hero .top { grid-area: lab; }
-        .weighins :global(thead), .weighins :global(td:last-child), .weighins :global(th:last-child) { display: none; }
+        h1 { font-size: 24px; }
+        .readout { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 14px; }
+        .cell + .cell { border-left: 0; }
+        .lead { grid-column: 1 / -1; }
+        .ch { flex-wrap: wrap; gap: 8px; }
+        .legend { order: 3; flex-basis: 100%; }
+        .chart { padding: 14px 12px 8px; }
     }
 </style>

@@ -2,9 +2,10 @@ import { deferPage } from '@hearthlog/sdk/runtime';
 import type { ModuleLoadEvent } from "@hearthlog/sdk/runtime";
 import { shiftLocalDate, toLocalDateString } from '../calories/logic.js';
 import { queryDatabase } from '@hearthlog/sdk/data';
-import { appClock } from '@hearthlog/sdk/runtime';
+import { appClock, tenant } from '@hearthlog/sdk/runtime';
 import {
     EMPTY_WEIGHT_RANGE,
+    weightGoal,
     type WeightPageData,
     type WeightRange,
     type WeightRangeData,
@@ -15,12 +16,14 @@ const loadData = async (): Promise<WeightPageData> => {
     const today = toLocalDateString(await appClock.ready());
     return queryDatabase(async (repositories) => {
         const weights = repositories.weightLogs;
-        const [latest, total] = await Promise.all([
+        const [latest, total, nutritionGoal] = await Promise.all([
             weights.getLatestWeightLog(),
             weights.countWeightLogs(),
+            tenant.features.has('calories') ? repositories.calories.getLatestNutritionGoal(today) : null,
         ]);
+        const goal = weightGoal(nutritionGoal);
         const empty = { 30: EMPTY_WEIGHT_RANGE, 90: EMPTY_WEIGHT_RANGE, 365: EMPTY_WEIGHT_RANGE, all: EMPTY_WEIGHT_RANGE };
-        if (!latest) return { latest, delta: null, pace: null, trends: empty, total, defaultDate: today };
+        if (!latest) return { latest, delta: null, pace: null, trends: empty, total, defaultDate: today, trendNow: null, goal };
 
         const latestDate = String(latest.date).slice(0, 10);
         const monthAgo = shiftLocalDate(latestDate, -30);
@@ -46,12 +49,15 @@ const loadData = async (): Promise<WeightPageData> => {
             trends,
             total,
             defaultDate: today,
+            trendNow: last30.mean.at(-1)?.mean ?? null,
+            goal,
         };
     });
 };
 
 export const load = (event: ModuleLoadEvent) => {
     event.depends('app:weight-logs');
+    if (tenant.features.has('calories')) event.depends('app:calories');
     return deferPage<WeightPageData>(event, {
         latest: null,
         delta: null,
@@ -59,5 +65,7 @@ export const load = (event: ModuleLoadEvent) => {
         trends: { 30: EMPTY_WEIGHT_RANGE, 90: EMPTY_WEIGHT_RANGE, 365: EMPTY_WEIGHT_RANGE, all: EMPTY_WEIGHT_RANGE },
         total: 0,
         defaultDate: toLocalDateString(),
+        trendNow: null,
+        goal: null,
     }, () => loadData());
 };

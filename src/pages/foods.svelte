@@ -26,6 +26,7 @@
     import { MobilePageAction } from "@hearthlog/sdk/ui";
     import { EmptyState } from "@hearthlog/sdk/ui";
     import HealthPageHeader from "../components/health/HealthPageHeader.svelte";
+    import FoodDetail from "../components/calories/FoodDetail.svelte";
     import HealthHead from "../components/health/HealthHead.svelte";
     import FoodLibraryTable from "../components/calories/FoodLibraryTable.svelte";
     import { Button } from "@hearthlog/sdk/ui";
@@ -104,6 +105,8 @@
 
     // SQLite filters, sorts and pages the library; the page on screen stays until the next one arrives.
     let foods = $state.raw<FoodItem[]>([]);
+    /** The food whose detail sits beside the table. */
+    let selectedFood = $state<FoodItem | null>(null);
     let matchCount = $state(0);
     let foodsLoaded = $state(false);
     const pageCount = $derived(Math.max(1, Math.ceil(matchCount / pageSize)));
@@ -644,6 +647,7 @@
                     </CommandOnly>
                 </EmptyState>
             {:else}
+                <div class="lib" class:open={selectedFood !== null}>
                 <FoodLibraryTable
                     {foods}
                     total={matchCount}
@@ -657,11 +661,17 @@
                     onFavorite={(food) => void toggleFavorite(food)}
                     onEdit={startEdit}
                     onDelete={(food) => (deleteId = food.id)}
+                    onSelect={(food) => (selectedFood = food)}
+                    selectedId={selectedFood?.id ?? null}
                 >
                     {#snippet empty()}
                         <EmptyState surface={false} title="No foods found" description="Try another name or brand." icon={IconFoodApple} />
                     {/snippet}
                 </FoodLibraryTable>
+                {#if selectedFood}
+                    <FoodDetail food={selectedFood} onEdit={startEdit} onSelect={(food) => (selectedFood = food)} onClose={() => (selectedFood = null)} />
+                {/if}
+                </div>
             {/if}
 
             {#if search.trim().length >= 2}
@@ -860,3 +870,9 @@
     onConfirm={removeFood}
     onCancel={() => deleteId = null}
 />
+
+<style>
+    /* The detail joins the table as a column from xl; below that it follows the table. */
+    .lib { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--stor-section-gap); align-items: start; }
+    @media (min-width: 1280px) { .lib.open { grid-template-columns: minmax(0, 1fr) 380px; } }
+</style>
