@@ -88,7 +88,6 @@
 
     .macros {
         display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; padding-top: 16px;
-        border-top: 1px solid color-mix(in srgb, var(--stor-border) 70%, transparent);
     }
     .macro { display: flex; min-width: 0; flex-direction: column; gap: 4px; }
     .ml { font-size: 12px; font-weight: 600; color: var(--stor-muted-text); }

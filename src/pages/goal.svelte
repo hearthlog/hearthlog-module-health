@@ -283,7 +283,7 @@
     .seg button { flex: 1; height: 34px; border-radius: 8px; font-size: 13.5px; font-weight: 600; color: var(--stor-muted-text); }
     .seg button.on { background: var(--stor-surface); color: var(--stor-ink); box-shadow: var(--stor-elevation-1); }
     .opts { display: flex; flex-direction: column; gap: 6px; }
-    .opt { display: flex; flex-direction: column; gap: 2px; padding: 10px 14px; border-radius: 12px; text-align: left; box-shadow: inset 0 0 0 1px var(--stor-border); }
+    .opt { display: flex; flex-direction: column; gap: 2px; padding: 10px 14px; border-radius: 12px; text-align: left; box-shadow: var(--stor-elevation-2); background: var(--stor-surface-raised); }
     .opt b { font-size: 14px; font-weight: 600; color: var(--stor-ink); }
     .opt span { font-size: 12.5px; color: var(--stor-muted-text); }
     .opt.on { box-shadow: inset 0 0 0 1.5px var(--stor-action); background: var(--stor-surface); }
@@ -323,7 +323,7 @@
     .split .f { background: var(--stor-ink); opacity: .22; }
     .foot { display: flex; align-items: center; justify-content: flex-end; gap: 10px; }
     .foot .s { margin-right: auto; }
-    .btn { display: inline-flex; height: 42px; align-items: center; padding: 0 16px; border-radius: 12px; font-size: 14px; font-weight: 600; color: var(--stor-ink); background: var(--stor-surface); box-shadow: inset 0 0 0 1px var(--stor-border); text-decoration: none; }
+    .btn { display: inline-flex; height: 42px; align-items: center; padding: 0 16px; border-radius: 12px; font-size: 14px; font-weight: 600; color: var(--stor-ink); background: var(--stor-surface-raised); box-shadow: var(--stor-elevation-2); text-decoration: none; }
     .btn.pri { color: var(--stor-action-text, #fff); background: var(--stor-action); box-shadow: none; }
     .btn:disabled { opacity: .5; }
     @media (max-width: 1023px) { .grid { grid-template-columns: minmax(0, 1fr); } }

@@ -303,10 +303,10 @@
         </div>
 
         {#if cameraMessage}
-            <p class="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-800" role="status">{cameraMessage}</p>
+            <p class="rounded-xl bg-amber-50 px-3 py-2.5 text-sm text-amber-800" role="status">{cameraMessage}</p>
         {/if}
         {#if photoMessage}
-            <p class="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-800" role="status">{photoMessage}</p>
+            <p class="rounded-xl bg-amber-50 px-3 py-2.5 text-sm text-amber-800" role="status">{photoMessage}</p>
         {/if}
 
         <div class="grid grid-cols-2 gap-2">
@@ -356,7 +356,7 @@
             </div>
 
             {#if externalResult?.confidence === "LOW"}
-                <p class="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-800">
+                <p class="mt-3 rounded-xl bg-amber-50 px-3 py-2.5 text-sm text-amber-800">
                     Several catalog products matched this barcode. Check the name and nutrition before continuing.
                 </p>
             {/if}
@@ -390,7 +390,7 @@
             </div>
         </section>
     {:else}
-        <section class="rounded-xl border {stage === 'not-found' ? 'border-amber-200 bg-amber-50' : 'border-[var(--stor-border)] bg-white'} p-4">
+        <section class="rounded-xl {stage === 'not-found' ? 'bg-amber-50' : 'bg-[var(--stor-surface-muted)]'} p-4">
             <IconBarcodeScan class="h-7 w-7 {stage === 'not-found' ? 'text-amber-700' : 'text-[var(--stor-muted-text)]'}" />
             <h3 class="mt-3 font-semibold text-stone-950">{stage === "not-found" ? "Product not found" : "Lookup unavailable"}</h3>
             <p class="mt-1 text-sm leading-relaxed text-stone-600">{stage === "not-found" ? `The catalog has no product for barcode ${scannedEan}.` : lookupMessage}</p>

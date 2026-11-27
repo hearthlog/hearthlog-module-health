@@ -179,7 +179,7 @@
     {#if phone.current}
         <ul class="flex flex-col" aria-label="Meals">
             {#each slots as slot, index (slot.id)}
-                <li class="relative flex min-h-14 items-center gap-2 border-b border-[color-mix(in_srgb,var(--stor-border)_62%,transparent)] bg-[var(--stor-surface-sheet,var(--stor-surface))] {dragIndex === index ? 'z-10 rounded-xl shadow-[var(--stor-elevation-3)]' : ''}"
+                <li class="relative flex min-h-14 items-center gap-2 bg-[var(--stor-surface-sheet,var(--stor-surface))] {dragIndex === index ? 'z-10 rounded-xl shadow-[var(--stor-elevation-3)]' : ''}"
                     style:transform={dragIndex === index ? `translateY(${dragOffset}px)` : undefined}>
                     <button type="button" class="grid h-11 w-9 shrink-0 touch-none place-items-center text-[var(--stor-muted-text)]" aria-label={`Drag ${slot.label} to reorder`}
                         onpointerdown={(event) => dragStart(event, index)} onpointermove={dragMove} onpointerup={dragEnd} onpointercancel={dragEnd}
@@ -282,7 +282,7 @@
         {/each}
     </ul>
 
-    <form class="mt-4 flex items-center gap-2 border-t border-[var(--stor-border)] pt-4" onsubmit={addSlot}>
+    <form class="mt-4 flex items-center gap-2 pt-4" onsubmit={addSlot}>
         <Input
             id="meal-slot-new-label"
             class="min-w-0 flex-1"

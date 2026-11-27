@@ -348,7 +348,7 @@
             </label>
             {#if source === "library"}
                 {#if library.length > 0}
-                    <ul class="mt-2 divide-y divide-[color-mix(in_srgb,var(--stor-border)_62%,transparent)]">
+                    <ul class="mt-2 ">
                         {#each library as item (item.id)}
                             <li>
                                 <button type="button" class="flex min-h-12 w-full items-center gap-3 text-left" onclick={() => useFood(item)} aria-label={`Choose ${item.name}`}>
@@ -366,7 +366,7 @@
                 {/if}
             {:else if source === "online"}
                 {#if online.length > 0}
-                    <ul class="mt-2 divide-y divide-[color-mix(in_srgb,var(--stor-border)_62%,transparent)]">
+                    <ul class="mt-2 ">
                         {#each online as item (item.guid)}
                             <li>
                                 <button type="button" class="flex min-h-12 w-full items-center gap-3 text-left disabled:opacity-60" disabled={importingId !== null} onclick={() => void useOnline(item)} aria-label={`Choose ${item.name}`}>
@@ -386,7 +386,7 @@
                 {/if}
             {:else if recent.length > 0}
                 <p class="mb-1 mt-3 text-xs font-semibold uppercase tracking-wide text-[var(--stor-muted-text)]">{search.trim() ? "Matches" : "Recent"}</p>
-                <ul class="divide-y divide-[color-mix(in_srgb,var(--stor-border)_62%,transparent)]">
+                <ul class="">
                     {#each recent as entry (entry.id)}
                         <li>
                             <button type="button" class="flex min-h-12 w-full items-center gap-3 text-left" onclick={() => void useRecent(entry)} aria-label={`Fill with ${entry.name}, ${formatNumber(Number(entry.calories))} kcal`}>

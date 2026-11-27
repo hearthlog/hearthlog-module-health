@@ -205,6 +205,6 @@
     .nm { display: flex; min-width: 0; flex: 1; flex-direction: column; font-weight: 600; }
     .nm small { font-size: 12px; font-weight: 500; color: var(--stor-muted-text); font-variant-numeric: tabular-nums; }
     .kc { font-weight: 600; font-variant-numeric: tabular-nums; }
-    .kbd { display: inline-grid; min-width: 20px; height: 20px; place-items: center; border-radius: 5px; font-size: 11px; color: var(--stor-muted-text); box-shadow: inset 0 0 0 1px var(--stor-border); }
+    .kbd { display: inline-grid; min-width: 20px; height: 20px; place-items: center; border-radius: 5px; font-size: 11px; color: var(--stor-muted-text); background: var(--stor-surface-well); }
     .more { color: var(--stor-muted-text) !important; font-weight: 500; }
 </style>

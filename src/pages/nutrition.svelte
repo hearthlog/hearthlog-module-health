@@ -1421,7 +1421,7 @@
     {:else}
     <form class="space-y-4" onsubmit={saveEntry}>
         {#if pendingManualEan && !editingEntryId}
-            <div class="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5">
+            <div class="rounded-xl bg-amber-50 px-3 py-2.5">
                 <p class="text-xs font-semibold uppercase tracking-wide text-amber-800">Unmatched barcode</p>
                 <p class="mt-1 text-sm tabular-nums text-[var(--stor-muted-text)]">{pendingManualEan}</p>
                 <p class="mt-1 text-xs text-[var(--stor-muted-text)]">Enter nutrition manually. Save it as reusable to recognize this barcode offline next time.</p>
@@ -1470,7 +1470,7 @@
                     </div>
                 {/if}
                 {#if foodSearch.trim().length >= 2}
-                    <div class="mt-4 border-t border-stone-200 pt-3">
+                    <div class="mt-4 pt-3">
                         <div class="flex items-baseline justify-between gap-3">
                             <div class="text-xs font-semibold uppercase tracking-wide text-[var(--stor-muted-text)]">Online catalog</div>
                             {#if externalLoading}<span class="text-xs text-sky-700">Searching…</span>{/if}
@@ -1668,7 +1668,7 @@
                 <Textarea id="calorie-entry-notes" bind:value={entryDraft.notes} placeholder="Optional context" />
             </Field>
         {/if}
-        <div class="flex justify-end gap-2 border-t border-stone-200 pt-4 max-md:border-0 max-md:pt-0 max-md:[&>button:last-child]:flex-1">
+        <div class="flex justify-end gap-2 pt-4 max-md:pt-0 max-md:[&>button:last-child]:flex-1">
             <Button variant="secondary" class="max-md:hidden" onclick={closeEntryDrawer}>Cancel</Button>
             <Button type="submit" disabled={savingEntry}>{savingEntry ? "Saving…" : editingEntryId ? "Save changes" : "Save entry"}</Button>
         </div>
@@ -1725,7 +1725,7 @@
             </div>
 
             {#if goalCalculatorOpen}
-                <div class="mt-4 space-y-4 border-t border-stone-200 pt-4">
+                <div class="mt-4 space-y-4 pt-4">
                     <div class="grid gap-3 sm:grid-cols-2">
                         <Field label="Current weight" htmlFor="nutrition-goal-current-weight" hint={goalPrefilledFromBody ? "Prefilled from Body history when available" : "Kilograms"} error={goalErrors.currentWeightKg} required>
                             <Input
@@ -1873,7 +1873,7 @@
                         </div>
 
                         {#if goalCalculation.warnings.length > 0}
-                            <div class="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900">
+                            <div class="rounded-xl bg-amber-50 p-3 text-xs leading-5 text-amber-900">
                                 {#each goalCalculation.warnings as warning}
                                     <p>{warning}</p>
                                 {/each}
@@ -1890,7 +1890,7 @@
                         </p>
                     {/if}
 
-                    <div class="flex items-start justify-between gap-3 border-t border-stone-200 pt-3">
+                    <div class="flex items-start justify-between gap-3 pt-3">
                         <p class="max-w-xl text-xs leading-5 text-[var(--stor-muted-text)]">
                             Adult estimate only; not medical advice and not intended for pregnancy or breastfeeding. Monitor weight and adjust over time.
                         </p>
@@ -1931,7 +1931,7 @@
                 <Input id="nutrition-goal-fat" type="number" min="0" step="0.1" bind:value={goalDraft.fatTargetG} placeholder="g" />
             </Field>
         </div>
-        <div class="flex justify-end gap-2 border-t border-stone-200 pt-4 max-md:border-0 max-md:pt-0">
+        <div class="flex justify-end gap-2 pt-4 max-md:pt-0">
             <Button variant="secondary" class="max-md:hidden" onclick={() => goalDrawerOpen = false}>Cancel</Button>
             <Button type="submit" class="max-md:h-12 max-md:flex-1" disabled={savingGoal}>{savingGoal ? "Saving…" : compactForm && Number(goalDraft.caloriesTarget) > 0 ? `Set ${formatNumber(Number(goalDraft.caloriesTarget))} kcal` : "Save goals"}</Button>
         </div>

@@ -112,13 +112,12 @@
 <style>
     .facts {
         display: grid; grid-template-columns: 1fr 1fr; gap: 0 24px; margin: 16px 0 6px; padding-top: 14px;
-        border-top: 1px solid color-mix(in srgb, var(--stor-border) 70%, transparent);
     }
     .facts > div { padding: 8px 0; }
     .facts dt { font-size: 12px; font-weight: 500; color: var(--stor-muted-text); }
     .facts dd { margin: 2px 0 0; font-size: 18px; font-weight: 650; letter-spacing: -.015em; color: var(--stor-ink); font-variant-numeric: tabular-nums; }
     .facts dd small { font-size: 11.5px; font-weight: 500; letter-spacing: 0; color: var(--stor-muted-text); }
-    .exercise { margin-top: 8px; padding-top: 14px; border-top: 1px solid color-mix(in srgb, var(--stor-border) 70%, transparent); }
+    .exercise { margin-top: 8px; padding-top: 14px; }
     .lab { display: flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 600; letter-spacing: .02em; color: var(--stor-muted-text); }
     .lab i { display: block; width: 8px; height: 8px; border-radius: 50%; background: var(--tone); }
     .big { margin: 6px 0 14px; font-size: 28px; font-weight: 650; line-height: 1.1; letter-spacing: -.03em; color: var(--stor-ink); font-variant-numeric: tabular-nums; }

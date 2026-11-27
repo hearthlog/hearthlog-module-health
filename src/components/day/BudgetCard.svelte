@@ -112,7 +112,7 @@
     .fore .mt, .mt { color: var(--stor-muted-text); }
     .dash { width: 18px; height: 8px; border-radius: 2px; box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--stor-health-eat) 55%, transparent); }
     .macros { display: flex; min-width: 0; flex-direction: column; gap: 10px; }
-    @media (min-width: 1024px) { .macros { padding-left: 24px; border-left: 1px solid color-mix(in srgb, var(--stor-border) 60%, transparent); } }
+    @media (min-width: 1024px) { .macros { padding-left: 24px; } }
     .mac { display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; align-items: center; gap: 10px; font-size: 13px; }
     .mac b { font-weight: 600; color: var(--stor-ink); }
     .mbar { display: block; height: 6px; border-radius: 3px; background: var(--stor-surface-muted); overflow: hidden; }

@@ -64,7 +64,7 @@
     .hero { container-type: inline-size; }
     .cols { display: grid; grid-template-columns: minmax(0, 1fr); }
     .col { position: relative; min-width: 0; padding: 20px; }
-    .col + .col::before { content: ""; position: absolute; top: 0; left: 24px; right: 24px; height: 1px; background: color-mix(in srgb, var(--stor-border) 70%, transparent); }
+    .col + .col::before { content: none; position: absolute; top: 0; left: 24px; right: 24px; height: 1px; background: color-mix(in srgb, var(--stor-border) 70%, transparent); }
     .steps { --ring-size: 104px; display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 16px; }
     .lab { display: flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 600; letter-spacing: .02em; color: var(--stor-muted-text); }
     .lab i { display: block; width: 8px; height: 8px; border-radius: 50%; background: var(--tone); }
