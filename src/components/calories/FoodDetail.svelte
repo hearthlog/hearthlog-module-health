@@ -146,7 +146,7 @@
     .s { font-size: 12.5px; color: var(--stor-muted-text); }
     .list { display: flex; flex-direction: column; }
     .li { display: flex; align-items: center; gap: 10px; min-height: 36px; font-size: 13.5px; color: var(--stor-ink); }
-    .li + .li { border-top: 1px solid color-mix(in srgb, var(--stor-border) 50%, transparent); }
+    .li + .li { }
     .li span:first-child { display: flex; flex: 1; align-items: baseline; gap: 6px; }
     .li small { font-size: 12px; color: var(--stor-muted-text); }
     .n { font-variant-numeric: tabular-nums; color: var(--stor-muted-text); }
@@ -156,12 +156,12 @@
     .track { display: block; height: 6px; border-radius: 3px; background: var(--stor-surface-muted); overflow: hidden; }
     .track i { display: block; height: 100%; background: var(--stor-health-eat); }
     .br .n { text-align: right; }
-    .dup { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; font-size: 12.5px; color: var(--stor-muted-text); box-shadow: inset 0 0 0 1px var(--stor-border); }
+    .dup { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; font-size: 12.5px; color: var(--stor-muted-text); background: var(--stor-surface-muted); }
     .dup p { flex: 1; }
     .dup b { color: var(--stor-ink); font-weight: 600; }
     .lnk { font-size: 13px; font-weight: 600; color: var(--stor-accent-text); }
     .acts { display: flex; gap: 8px; margin-top: 6px; }
-    .btn { display: inline-flex; height: 40px; align-items: center; padding: 0 14px; border-radius: 12px; font-size: 13.5px; font-weight: 600; color: var(--stor-ink); background: var(--stor-surface); box-shadow: inset 0 0 0 1px var(--stor-border); }
+    .btn { display: inline-flex; height: 40px; align-items: center; padding: 0 14px; border-radius: 12px; font-size: 13.5px; font-weight: 600; color: var(--stor-ink); background: var(--stor-surface-raised); box-shadow: var(--stor-elevation-2); }
     .btn.pri { flex: 1; justify-content: center; color: var(--stor-action-text, #fff); background: var(--stor-action); box-shadow: none; }
     .btn:disabled { opacity: .5; }
 </style>

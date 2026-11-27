@@ -753,7 +753,7 @@
 >
     <form id={drawerFormId0} class="space-y-4" onsubmit={saveFood}>
         {#if pendingManualEan && !editingId}
-            <div class="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5">
+            <div class="rounded-xl bg-amber-50 px-3 py-2.5">
                 <p class="text-xs font-semibold uppercase tracking-wide text-amber-800">Unmatched barcode</p>
                 <p class="mt-1 text-sm tabular-nums text-[var(--stor-muted-text)]">{pendingManualEan}</p>
                 <p class="mt-1 text-xs text-[var(--stor-muted-text)]">This code will be saved with the food for future offline scans.</p>

@@ -110,7 +110,7 @@
     .facts .pos { color: var(--stor-positive); }
     .facts .neg { color: var(--stor-ink); }
     .height { display: flex; align-items: center; gap: 8px; font-size: 13.5px; color: var(--stor-ink); }
-    .height input { width: 84px; height: 36px; padding: 0 10px; border-radius: 10px; border: 1px solid var(--stor-field-border, var(--stor-border)); background: var(--stor-surface); font-size: 14px; }
+    .height input { width: 84px; height: 36px; padding: 0 10px; border-radius: 10px; border: 0; background: var(--stor-field-fill); box-shadow: var(--stor-field-inset), inset 0 -1.5px 0 var(--stor-field-line); font-size: 14px; }
     .save { height: 44px; border-radius: 12px; font-size: 14.5px; font-weight: 600; color: var(--stor-action-text, #fff); background: var(--stor-action); }
     .save:hover { background: var(--stor-action-hover); }
     .save:disabled { opacity: .5; }

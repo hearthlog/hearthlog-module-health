@@ -134,7 +134,7 @@
     .day {
         position: relative; z-index: 1; grid-row: 1; display: flex; min-height: 44px; flex-direction: column; align-items: stretch; gap: 8px;
         padding: 8px 6px 9px; border-radius: 14px; color: var(--stor-muted-text);
-        box-shadow: inset 0 0 0 1px var(--stor-border);
+        background: var(--stor-surface-muted);
     }
     @media (min-width: 640px) { .day { padding: 10px 12px 12px; } }
     .day.on { box-shadow: none; }

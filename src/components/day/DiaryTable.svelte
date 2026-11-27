@@ -163,14 +163,13 @@
         display: grid; grid-template-columns: minmax(0, 1fr) 132px 64px 64px 64px 56px 76px; align-items: center; gap: 8px;
         min-height: 40px; padding: 0 10px;
     }
-    .head { min-height: 32px; font-size: 12px; font-weight: 600; color: var(--stor-muted-text); border-bottom: 1px solid color-mix(in srgb, var(--stor-border) 60%, transparent); }
+    .head { min-height: 32px; font-size: 12px; font-weight: 600; color: var(--stor-muted-text); }
     .meal { min-height: 44px; margin-top: 6px; font-weight: 650; color: var(--stor-ink); }
     .meal .n { font-weight: 650; }
     .mn { display: flex; align-items: baseline; gap: 8px; font-family: var(--stor-font-serif); font-size: 17px; font-weight: 500; }
     .mn small { font-family: var(--stor-font-sans); font-size: 12px; font-weight: 500; color: var(--stor-muted-text); font-variant-numeric: tabular-nums; }
     .entry { border-radius: 10px; color: var(--stor-ink); }
     .entry:hover { background: var(--stor-surface-hover); }
-    .entry + .entry { box-shadow: inset 0 1px 0 color-mix(in srgb, var(--stor-border) 45%, transparent); }
     .entry:hover + .entry, .entry:hover { box-shadow: none; }
     .nm { display: flex; min-width: 0; flex-direction: column; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
     .nm small { overflow: hidden; text-overflow: ellipsis; font-size: 12px; color: var(--stor-muted-text); }
@@ -180,7 +179,7 @@
     .portion { display: flex; min-width: 0; align-items: center; gap: 4px; color: var(--stor-muted-text); font-variant-numeric: tabular-nums; }
     .pbtn { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; border-radius: 6px; padding: 2px 6px; margin-left: -6px; color: var(--stor-muted-text); }
     .pbtn:hover { background: var(--stor-surface-muted); color: var(--stor-ink); text-decoration: underline dotted; }
-    .grams { width: 72px; height: 30px; padding: 0 8px; border-radius: 8px; border: 1px solid var(--stor-action); background: var(--stor-surface); font-size: 13.5px; color: var(--stor-ink); text-align: right; box-shadow: 0 0 0 3px var(--stor-selected); outline: none; }
+    .grams { width: 72px; height: 30px; padding: 0 8px; border-radius: 8px; border: 0; background: var(--stor-surface); font-size: 13.5px; color: var(--stor-ink); text-align: right; box-shadow: inset 0 -2px 0 var(--stor-action), 0 0 0 3px var(--stor-selected); outline: none; }
     .u { font-size: 12px; }
     .acts { display: flex; justify-content: flex-end; gap: 2px; opacity: 0; transition: opacity .12s; }
     .entry:hover .acts, .entry:focus-within .acts, .usual .acts { opacity: 1; }

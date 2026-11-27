@@ -75,7 +75,6 @@
 <style>
     .facts {
         display: grid; grid-template-columns: 1fr 1fr; gap: 0 24px; margin: 16px 0 0; padding-top: 14px;
-        border-top: 1px solid color-mix(in srgb, var(--stor-border) 70%, transparent);
     }
     .facts > div { padding: 8px 0; }
     .facts dt { font-size: 12px; font-weight: 500; color: var(--stor-muted-text); }

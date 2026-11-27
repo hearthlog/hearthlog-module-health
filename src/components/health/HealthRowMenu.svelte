@@ -38,7 +38,7 @@
                 <IconPencil class="h-4 w-4 shrink-0 text-[var(--stor-muted-text)]" />
                 Edit
             </DropdownMenu.Item>
-            <DropdownMenu.Separator class="my-1 h-px bg-[var(--stor-border)]" />
+            <DropdownMenu.Separator class="h-2" />
             <DropdownMenu.Item class="{itemClass} text-[var(--stor-negative)]" onSelect={onDelete}>
                 <IconTrash class="h-4 w-4 shrink-0" />
                 Delete

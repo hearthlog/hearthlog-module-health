@@ -52,7 +52,7 @@
     .week {
         display: none; height: 32px; margin-left: auto; padding: 0 12px; border-radius: 999px; font-size: 13px; font-weight: 600;
         background: var(--stor-surface-muted); color: var(--stor-ink);
-        box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--stor-border) 60%, transparent);
+        background: var(--stor-surface-muted);
     }
     .week:hover { background: var(--stor-surface-hover); }
     .week:focus-visible { outline: 2px solid var(--stor-focus); outline-offset: 2px; }

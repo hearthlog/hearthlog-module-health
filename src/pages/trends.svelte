@@ -263,11 +263,11 @@
     h1 { font-family: var(--stor-font-serif); font-size: 30px; font-weight: 500; line-height: 1.15; color: var(--stor-ink); }
     .h { font-size: 15px; font-weight: 650; color: var(--stor-ink); }
     .nav { display: flex; gap: 4px; }
-    .sq { display: grid; width: 36px; height: 36px; place-items: center; border-radius: 10px; color: var(--stor-ink); box-shadow: inset 0 0 0 1px var(--stor-border); background: var(--stor-surface); }
+    .sq { display: grid; width: 36px; height: 36px; place-items: center; border-radius: 10px; color: var(--stor-ink); box-shadow: var(--stor-elevation-2); background: var(--stor-surface-raised); }
     .sq:disabled { opacity: .4; }
     .readout { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); padding: 16px 8px; }
     .cell { display: flex; min-width: 0; flex-direction: column; gap: 4px; padding: 2px 16px; }
-    .cell + .cell { border-left: 1px solid color-mix(in srgb, var(--stor-border) 60%, transparent); }
+    .cell + .cell { }
     .k { font-size: 12px; font-weight: 600; color: var(--stor-muted-text); }
     .v { font-size: 26px; font-weight: 650; line-height: 1.1; letter-spacing: -.02em; color: var(--stor-ink); font-variant-numeric: tabular-nums; }
     .v.neg { color: var(--stor-negative); }
@@ -284,7 +284,7 @@
     .cell-day { display: flex; min-height: 76px; flex-direction: column; gap: 4px; padding: 8px; border-radius: 10px; background: color-mix(in srgb, var(--stor-surface-muted) 55%, transparent); color: var(--stor-ink); text-decoration: none; }
     .cell-day:hover { background: var(--stor-surface-hover); }
     .cell-day.out { opacity: .45; }
-    .cell-day.fut { background: transparent; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--stor-border) 50%, transparent); }
+    .cell-day.fut { background: color-mix(in srgb, var(--stor-surface-muted) 60%, transparent); }
     .cell-day.now { box-shadow: inset 0 0 0 1.5px var(--stor-now); }
     .dn { display: flex; align-items: center; justify-content: space-between; font-family: var(--stor-font-serif); font-size: 15px; }
     .pm { display: inline-grid; width: 16px; height: 16px; place-items: center; border-radius: 4px; font-family: var(--stor-font-sans); font-size: 10px; font-weight: 700; color: var(--stor-positive); box-shadow: inset 0 0 0 1px currentColor; }
@@ -301,11 +301,11 @@
     .s { font-size: 13px; line-height: 1.5; color: var(--stor-muted-text); }
     .s b { color: var(--stor-ink); }
     .row { display: flex; flex-wrap: wrap; gap: 8px; }
-    .btn { display: inline-flex; height: 38px; align-items: center; padding: 0 14px; border-radius: 11px; font-size: 13.5px; font-weight: 600; color: var(--stor-ink); background: var(--stor-surface); box-shadow: inset 0 0 0 1px var(--stor-border); }
+    .btn { display: inline-flex; height: 38px; align-items: center; padding: 0 14px; border-radius: 11px; font-size: 13.5px; font-weight: 600; color: var(--stor-ink); background: var(--stor-surface-raised); box-shadow: var(--stor-elevation-2); }
     .btn.pri { color: var(--stor-action-text, #fff); background: var(--stor-action); box-shadow: none; }
     .tbl { display: flex; flex-direction: column; }
     .tr { display: grid; grid-template-columns: minmax(0, 1fr) 70px 70px 50px; align-items: center; gap: 8px; min-height: 36px; font-size: 13.5px; color: var(--stor-ink); }
-    .tr + .tr { border-top: 1px solid color-mix(in srgb, var(--stor-border) 50%, transparent); }
+    .tr + .tr { }
     .tr.th { min-height: 28px; font-size: 12px; font-weight: 600; color: var(--stor-muted-text); }
     .r { text-align: right; font-variant-numeric: tabular-nums; color: var(--stor-muted-text); }
     .r.b { font-weight: 600; color: var(--stor-ink); }

@@ -231,13 +231,13 @@
     .over { font-size: 12px; font-weight: 600; letter-spacing: .02em; color: var(--stor-muted-text); }
     h1 { font-family: var(--stor-font-serif); font-size: 30px; font-weight: 500; line-height: 1.15; color: var(--stor-ink); }
     .h { font-size: 15px; font-weight: 650; color: var(--stor-ink); }
-    .btn { display: inline-flex; height: 40px; align-items: center; padding: 0 14px; border-radius: 12px; font-size: 14px; font-weight: 600; color: var(--stor-ink); background: var(--stor-surface); box-shadow: inset 0 0 0 1px var(--stor-border); text-decoration: none; }
+    .btn { display: inline-flex; height: 40px; align-items: center; padding: 0 14px; border-radius: 12px; font-size: 14px; font-weight: 600; color: var(--stor-ink); background: var(--stor-surface-raised); box-shadow: var(--stor-elevation-2); text-decoration: none; }
     .btn:hover { background: var(--stor-surface-hover); }
     .top { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: var(--stor-section-gap); }
     .weigh { display: flex; flex-direction: column; gap: 12px; padding: 18px 20px; }
     .readout { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); align-content: center; padding: 18px 8px; }
     .cell { display: flex; min-width: 0; flex-direction: column; gap: 4px; padding: 4px 16px; }
-    .cell + .cell { border-left: 1px solid color-mix(in srgb, var(--stor-border) 60%, transparent); }
+    .cell + .cell { }
     .k { font-size: 12px; font-weight: 600; color: var(--stor-muted-text); }
     .v { font-size: 26px; font-weight: 650; line-height: 1.1; letter-spacing: -.02em; color: var(--stor-ink); font-variant-numeric: tabular-nums; white-space: nowrap; }
     .lead .v { font-size: 40px; color: var(--stor-ink); }

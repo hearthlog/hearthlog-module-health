@@ -28,6 +28,6 @@
     <RouteTabs label="Health sections" {tabs} />
 {/snippet}
 
-<PageHeader title="Health" class="stor-health-header max-md:sr-only" sidebarTabs tabs={sectionTabs}>
+<PageHeader title="Health" class="stor-health-header max-md:sr-only" sidebarTabs sticky tabs={sectionTabs}>
     {#if action}<div class="hidden shrink-0 lg:block">{@render action()}</div>{/if}
 </PageHeader>
