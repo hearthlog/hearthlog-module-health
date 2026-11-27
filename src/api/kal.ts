@@ -1,11 +1,11 @@
-import { tenant } from '@hearthlog/sdk/runtime';
 
 /**
- * The external food catalog's origin: the operator's `infrastructure.kalApiOrigin`
- * (compiled into the tenant), or `VITE_KAL_API_BASE_URL` for local development.
- * Empty means there is none, and catalog requests fail as unavailable.
+ * Where the food catalog is served: Health's own gateway route (`FOOD_CATALOG_PREFIX` in the server
+ * entry), which forwards to the Worker the operator names in
+ * `moduleSettings["org.stor.health"].catalogWorker` (503 without one), or `VITE_KAL_API_BASE_URL`
+ * for local development against `wrangler dev`.
  */
-export const KAL_API_BASE_URL = (import.meta.env.VITE_KAL_API_BASE_URL ?? tenant.kalApiOrigin ?? '').replace(/\/$/, '');
+export const KAL_API_BASE_URL = (import.meta.env.VITE_KAL_API_BASE_URL ?? '/api/food-catalog').replace(/\/$/, '');
 
 export type KalEanConfidence = 'HIGH' | 'LOW';
 
